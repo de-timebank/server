@@ -5,8 +5,9 @@
 //      in the request metadata.
 //
 
-pub mod proto;
-pub mod services;
+mod proto;
+mod services;
+mod starknet;
 
 use dotenv::dotenv;
 use proto::{account::user_server::UserServer, auth::auth_server::AuthServer};
@@ -21,7 +22,6 @@ use tonic::transport::Server;
 // async fn interceptor(req: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
 //     match req.metadata().get("access_token") {
 //         Some(_) => Ok(req),
-
 //         None => Err(tonic::Status::unauthenticated("MISSING ACCESS_TOKEN")),
 //     }
 // }

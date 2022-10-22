@@ -9,10 +9,15 @@ use tonic::{Request, Response, Status};
 use crate::{
     proto::timebank::servicerequest::service_request_server::ServiceRequest,
     proto::timebank::servicerequest::{
-        complete_service, create, delete, get, get_rating, select_bid, update,
+        complete_service, create, delete, get, get_by_id, get_commitment, get_rating, select_bid,
+        update, TServiceCommitment,
     },
     proto::timebank::{servicerating::TServiceRating, servicerequest::TServiceRequest},
     services::{error_messages, util, Result},
+    starknet::{
+        admin_account::AdminAccount,
+        main_contract::{CreateCommitmentRequest, MainContract},
+    },
 };
 
 pub use crate::proto::timebank::servicerequest::service_request_server::ServiceRequestServer;
@@ -193,6 +198,24 @@ impl ServiceRequest for ServiceRequestService {
                     .await
                     .unwrap();
 
+                // let response = self
+                //     .get(tonic::Request::new(get::Request {
+                //         payload: Some(get::Payload {
+                //             column: "id".into(),
+                //             filter: payload.request_id,
+                //         }),
+                //     }))
+                //     .await
+                //     .unwrap()
+                //     .into_inner();
+
+                // let main_contract = MainContract::new();
+                // let admin_account = AdminAccount::new();
+                // main_contract.create_commitment(admin_account, CreateCommitmentRequest {
+                //     request_id: payload.request_id,
+                //     requestor:
+                // });
+
                 match res.status() {
                     StatusCode::OK => {
                         let values: Vec<TServiceRequest> = res
@@ -334,5 +357,45 @@ impl ServiceRequest for ServiceRequestService {
 
             _ => Err(Status::invalid_argument(error_messages::INVALID_PAYLOAD)),
         }
+    }
+
+    async fn get_commitment(
+        &self,
+        request: Request<get_commitment::Request>,
+    ) -> Result<Response<get_commitment::Response>> {
+        let payload = request.into_inner().payload;
+
+        match payload {
+            Some(get_commitment::Payload { request_id }) => {
+                let main_contract = MainContract::new(AdminAccount::new());
+
+                let commitment = main_contract
+                    .get_commitment_of(&request_id)
+                    .await
+                    .map_err(|e| {
+                        let mut s = Status::unknown(error_messages::UNKNOWN);
+                        s.metadata_mut()
+                            .append("error", e.to_string().parse().unwrap());
+                        s
+                    })
+                    .unwrap();
+
+                Ok(Response::new(get_commitment::Response {
+                    commitment: Some(commitment),
+                }))
+            }
+
+            _ => Err(Status::new(
+                tonic::Code::InvalidArgument,
+                error_messages::INVALID_PAYLOAD,
+            )),
+        }
+    }
+
+    async fn get_by_id(
+        &self,
+        request: Request<get_by_id::Request>,
+    ) -> Result<Response<get_by_id::Response>> {
+        todo!()
     }
 }

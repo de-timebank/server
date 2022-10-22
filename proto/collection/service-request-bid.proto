@@ -5,6 +5,7 @@ service ServiceRequestBid {
     rpc create (Create.Request) returns (Create.Response);
     rpc get (Get.Request) returns (Get.Response);
     rpc delete (Delete.Request) returns (Delete.Response);
+    rpc getById (GetById.Request) returns (GetById.Response);
 }
 
 message TServiceRequestBid {
@@ -59,3 +60,16 @@ message Delete {
     }
 }
 
+message GetById {
+    message Payload {
+        string id = 1;
+    }      
+
+    message Request {
+        Payload payload = 1;
+    }
+
+    message Response {
+        TServiceRequestBid bid = 1;
+    }
+}

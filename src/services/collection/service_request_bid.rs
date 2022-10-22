@@ -4,7 +4,9 @@ use serde_json::json;
 use tonic::{Request, Response, Status};
 
 use crate::proto::timebank::servicerequestbid::service_request_bid_server::ServiceRequestBid;
-use crate::proto::timebank::servicerequestbid::{create, delete, get, TServiceRequestBid};
+use crate::proto::timebank::servicerequestbid::{
+    create, delete, get, get_by_id, TServiceRequestBid,
+};
 use crate::services::{error_messages, util, Result};
 
 pub use crate::proto::timebank::servicerequestbid::service_request_bid_server::ServiceRequestBidServer;
@@ -176,5 +178,12 @@ impl ServiceRequestBid for ServiceRequestBidService {
                 error_messages::INVALID_PAYLOAD,
             )),
         }
+    }
+
+    async fn get_by_id(
+        &self,
+        request: Request<get_by_id::Request>,
+    ) -> Result<Response<get_by_id::Response>> {
+        todo!()
     }
 }
