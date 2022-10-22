@@ -27,6 +27,7 @@ tokio = { version = "1.20.0", features = ["full"] }
 reqwest = { version = "0.11.11", features = ["json"] }
 go_true = { version = "0.1.1", path = "../gotrue-rs" }
 tower = "0.4.13"
+starknet = { git = "https://github.com/xJonathanLEI/starknet-rs" }
 
 [build-dependencies] 
 tonic-build = "0.7.2"
