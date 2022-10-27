@@ -8,6 +8,7 @@
 mod proto;
 mod services;
 mod starknet;
+mod supabase;
 
 use dotenv::dotenv;
 use proto::{account::user_server::UserServer, auth::auth_server::AuthServer};
