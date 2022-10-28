@@ -54,7 +54,7 @@ message TServiceRequest {
 } 
 
 message Create {
-    message TNewServiceRequest {
+    message NewServiceRequestData {
         TServiceRequest.Details details = 1;
         TServiceRequest.Location location = 2;
         float rate = 3;
@@ -62,13 +62,12 @@ message Create {
     }
 
     message Payload {
-        TNewServiceRequest request_data = 1;
+        NewServiceRequestData request_data = 1;
         string requestor = 2;
     }
 
     message Request {
         Payload payload = 1;
-        // string auth_token = 3;
     }
 
     message Response {
@@ -144,7 +143,7 @@ message GetRating {
     }
 
     message Response {
-        timebank.servicerating.TServiceRating rating = 1;
+        timebank.servicerating.RatingData rating = 1;
     }
 }
 

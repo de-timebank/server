@@ -62,6 +62,6 @@ message GetRating {
     }
 
     message Response {
-        repeated timebank.servicerating.TServiceRating ratings = 1;
+        repeated timebank.servicerating.RatingData ratings = 1;
     }
 }
