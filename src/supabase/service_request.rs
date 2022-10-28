@@ -38,7 +38,7 @@ impl ServiceRequest {
             .await
     }
 
-    async fn get_by<T, U>(&self, column: T, filter: U) -> Result<Response, Error>
+    async fn get<T, U>(&self, column: T, filter: U) -> Result<Response, Error>
     where
         T: AsRef<str>,
         U: AsRef<str>,
@@ -67,20 +67,38 @@ impl ServiceRequest {
             .await
     }
 
-    async fn select_bid<T, U>(&self, id: T, bid_id: U) -> Result<Response, Error>
+    async fn apply_as_provider<T, U>(&self, id: T, provider: U) -> Result<Response, Error>
     where
         T: Serialize,
         U: Serialize,
     {
         self.client
             .rpc(
-                ServiceRequestRpc::SelectBid,
-                json!(
-                    {
-                        "_request_id": id,
-                        "_bid_id": bid_id
-                    }
-                )
+                ServiceRequestRpc::ApplyProvider,
+                json!({
+                    "_request_id": id,
+                    "_provider": provider
+                })
+                .to_string(),
+            )
+            .execute()
+            .await
+    }
+
+    async fn select_provider<T, U, V>(&self, id: T, provider: U, user: V) -> Result<Response, Error>
+    where
+        T: Serialize,
+        U: Serialize,
+        V: Serialize,
+    {
+        self.client
+            .rpc(
+                ServiceRequestRpc::SelectProvider,
+                json!({
+                    "_caller": user,
+                    "_request_id": id,
+                    "_provider": provider,
+                })
                 .to_string(),
             )
             .execute()
@@ -109,7 +127,7 @@ impl ServiceRequest {
     where
         T: AsRef<str>,
     {
-        self.get_by("id", id).await
+        self.get("id", id).await
     }
 
     async fn get_commitment_of<T>(&self, id: T)
