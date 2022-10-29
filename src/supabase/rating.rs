@@ -1,23 +1,24 @@
-use super::{rpc::RatingRpc, SupabaseClient};
-use crate::proto::timebank::rating::create::NewRatingData;
+use super::{error_for_status, rpc::RatingRpc, ClientErrorKind, SupabaseClient};
+use crate::proto::timebank::rating::{create::NewRatingData, RatingData};
 
 use postgrest::Builder;
-use reqwest::{Error, Response};
-use serde::Serialize;
 use serde_json::json;
 
-pub struct Rating {
+pub struct RatingClient {
     client: SupabaseClient,
 }
 
-impl Rating {
-    fn new() -> Self {
+impl RatingClient {
+    pub fn new() -> Self {
         Self {
             client: SupabaseClient::new(),
         }
     }
 
-    async fn createForRequestor(&self, rating: NewRatingData) -> Result<Response, Error> {
+    pub async fn create_for_requestor(
+        &self,
+        rating: NewRatingData,
+    ) -> Result<RatingData, ClientErrorKind> {
         let NewRatingData {
             request_id,
             author,
@@ -25,7 +26,8 @@ impl Rating {
             comment,
         } = rating;
 
-        self.client
+        let res = self
+            .client
             .rpc(
                 RatingRpc::CreateForRequestor,
                 json!({
@@ -36,11 +38,21 @@ impl Rating {
                 })
                 .to_string(),
             )
-            .execute()
+            .await?;
+
+        let res = error_for_status(res).await?;
+        let values = res
+            .json::<Vec<RatingData>>()
             .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        Ok(values.into_iter().next().unwrap_or_default())
     }
 
-    async fn createForProvider(&self, rating: NewRatingData) -> Result<Response, Error> {
+    pub async fn create_for_provider(
+        &self,
+        rating: NewRatingData,
+    ) -> Result<RatingData, ClientErrorKind> {
         let NewRatingData {
             request_id,
             author,
@@ -48,7 +60,8 @@ impl Rating {
             comment,
         } = rating;
 
-        self.client
+        let res = self
+            .client
             .rpc(
                 RatingRpc::CreateForProvider,
                 json!({
@@ -59,34 +72,76 @@ impl Rating {
                 })
                 .to_string(),
             )
-            .execute()
+            .await?;
+
+        let res = error_for_status(res).await?;
+        let values = res
+            .json::<Vec<RatingData>>()
             .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        Ok(values.into_iter().next().unwrap_or_default())
     }
 
-    async fn get<T, U>(&self, column: T, filter: U) -> Result<Response, Error>
+    pub async fn get<T, U>(&self, column: T, filter: U) -> Result<Vec<RatingData>, ClientErrorKind>
     where
         T: AsRef<str>,
         U: AsRef<str>,
     {
-        self.table().eq(column, filter).execute().await
+        let res = self
+            .table()
+            .eq(column, filter)
+            .execute()
+            .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        let res = error_for_status(res).await?;
+        let values = res
+            .json::<Vec<RatingData>>()
+            .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        Ok(values)
     }
 
-    async fn update<T, U>(&self, id: T, body: U) -> Result<Response, Error>
+    pub async fn update<T, U>(&self, id: T, body: U) -> Result<RatingData, ClientErrorKind>
     where
         T: AsRef<str>,
         U: Into<String>,
     {
-        self.table().eq("id", id).update(body).execute().await
+        let res = self
+            .table()
+            .eq("id", id)
+            .update(body)
+            .execute()
+            .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        let res = error_for_status(res).await?;
+        let values = res
+            .json::<Vec<RatingData>>()
+            .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        Ok(values.into_iter().next().unwrap_or_default())
     }
 
-    async fn delete<T>(&self, id: T) -> Result<Response, Error>
+    pub async fn delete<T>(&self, id: T) -> Result<(), ClientErrorKind>
     where
         T: AsRef<str>,
     {
-        self.table().eq("id", id).delete().execute().await
+        let res = self
+            .table()
+            .eq("id", id)
+            .delete()
+            .execute()
+            .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+        error_for_status(res).await?;
+        Ok(())
     }
 
     fn table(&self) -> Builder {
-        self.client.postgrest_client.from("service_rating")
+        self.client.postgrest_client.from("rating")
     }
 }
