@@ -1,16 +1,12 @@
-use reqwest::StatusCode;
-use serde_json::json;
 use tonic::{metadata::MetadataMap, Code as RpcCode, Request, Response, Status};
 
 use crate::{
-    proto::timebank::servicerequest::service_request_server::ServiceRequest,
     proto::timebank::servicerequest::{
         apply_provider, complete_service, create, delete, get, get_by_id, get_commitment,
-        get_rating, select_provider, update, ServiceCommitmentData,
+        select_provider, service_request_server::ServiceRequest, update,
     },
-    proto::timebank::{rating::RatingData, servicerequest::ServiceRequestData},
-    services::{error_messages, util, Result},
-    supabase::service_request::ServiceRequestClient,
+    services::{error_messages, Result},
+    supabase::{service_request::ServiceRequestClient, ClientErrorKind},
 };
 
 pub use crate::proto::timebank::servicerequest::service_request_server::ServiceRequestServer;
@@ -40,23 +36,20 @@ impl ServiceRequest for ServiceRequestService {
                 requestor,
                 request_data: Some(request_data),
             } => {
-                let res = self.client.create(requestor, request_data).await.unwrap();
+                let res = self.client.create(requestor, request_data).await;
 
-                match res.status() {
-                    StatusCode::OK => {
-                        let values = res.json::<Vec<ServiceRequestData>>().await.unwrap();
+                match res {
+                    Ok(value) => Ok(Response::new(create::Response {
+                        request: Some(value),
+                    })),
 
-                        Ok(Response::new(create::Response {
-                            request: values.into_iter().next(),
-                        }))
+                    Err(ClientErrorKind::InternalError(e)) => {
+                        Err(Status::internal(error_messages::UNKNOWN))
                     }
 
-                    _ => {
+                    Err(ClientErrorKind::RequestError { code, body }) => {
                         let mut map = MetadataMap::new();
-                        map.insert(
-                            "error",
-                            res.text().await.unwrap_or_default().parse().unwrap(),
-                        );
+                        map.insert("error", body.parse().unwrap());
 
                         Err(Status::with_metadata(
                             RpcCode::Unknown,
@@ -79,28 +72,27 @@ impl ServiceRequest for ServiceRequestService {
     ) -> Result<Response<update::Response>> {
         let update::Request { request_id, body } = request.into_inner();
 
-        let res = self.client.update(request_id, body).await.unwrap();
+        let res = self.client.update(request_id, body).await;
 
-        if !res.status().is_success() {
-            let mut map = MetadataMap::new();
-            map.insert(
-                "error",
-                res.text().await.unwrap_or_default().parse().unwrap(),
-            );
+        match res {
+            Ok(value) => Ok(Response::new(update::Response {
+                request: Some(value),
+            })),
 
-            Err(Status::with_metadata(
-                RpcCode::Unknown,
-                error_messages::UNKNOWN,
-                map,
-            ))
-        } else {
-            let data = res
-                .json::<Vec<ServiceRequestData>>()
-                .await
-                .map(|values| values.into_iter().next())
-                .unwrap();
+            Err(ClientErrorKind::InternalError(e)) => {
+                Err(Status::internal(error_messages::UNKNOWN))
+            }
 
-            Ok(Response::new(update::Response { request: data }))
+            Err(ClientErrorKind::RequestError { code, body }) => {
+                let mut map = MetadataMap::new();
+                map.insert("error", body.parse().unwrap());
+
+                Err(Status::with_metadata(
+                    RpcCode::Unknown,
+                    error_messages::UNKNOWN,
+                    map,
+                ))
+            }
         }
     }
 
@@ -113,93 +105,51 @@ impl ServiceRequest for ServiceRequestService {
         if payload.request_id.is_empty() {
             Err(Status::invalid_argument(error_messages::INVALID_PAYLOAD))
         } else {
-            let res = self.client.delete(payload.request_id).await.unwrap();
+            let res = self.client.delete(payload.request_id).await;
 
-            if !res.status().is_success() {
-                let mut map = MetadataMap::new();
-                map.insert(
-                    "error",
-                    res.text().await.unwrap_or_default().parse().unwrap(),
-                );
+            match res {
+                Ok(_) => Ok(Response::new(delete::Response {})),
 
-                Err(Status::with_metadata(
-                    RpcCode::Unknown,
-                    error_messages::UNKNOWN,
-                    map,
-                ))
-            } else {
-                Ok(Response::new(delete::Response {}))
-            }
-        }
-    }
+                Err(ClientErrorKind::InternalError(e)) => {
+                    Err(Status::internal(error_messages::UNKNOWN))
+                }
 
-    async fn get_rating(
-        &self,
-        request: Request<get_rating::Request>,
-    ) -> Result<Response<get_rating::Response>> {
-        todo!()
-        // let payload = request.into_inner().payload;
-
-        // match payload {
-        //     Some(payload) => {
-        //         let res = self
-        //             .db_client
-        //             .from("service_rating")
-        //             .eq("request_id", payload.request_id)
-        //             .execute()
-        //             .await
-        //             .unwrap();
-
-        //         match res.status() {
-        //             StatusCode::OK => {
-        //                 let values: Vec<RatingData> = res.json().await.unwrap();
-
-        //                 Ok(Response::new(get_rating::Response {
-        //                     rating: values.into_iter().next(),
-        //                 }))
-        //             }
-
-        //             StatusCode::BAD_REQUEST => {
-        //                 Err(Status::invalid_argument(error_messages::INVALID_PAYLOAD))
-        //             }
-
-        //             _ => Err(Status::unknown(error_messages::UNKNOWN)),
-        //         }
-        //     }
-
-        //     _ => Err(Status::invalid_argument(error_messages::INVALID_PAYLOAD)),
-        // }
-    }
-
-    async fn get(&self, request: Request<get::Request>) -> Result<Response<get::Response>> {
-        let get::Request { column, filter } = request.into_inner();
-
-        match (column.is_empty(), filter.is_empty()) {
-            (false, false) => {
-                let res = self.client.get(column, filter).await.unwrap();
-
-                if !res.status().is_success() {
+                Err(ClientErrorKind::RequestError { code, body }) => {
                     let mut map = MetadataMap::new();
-                    map.insert(
-                        "error",
-                        res.text().await.unwrap_or_default().parse().unwrap(),
-                    );
+                    map.insert("error", body.parse().unwrap());
 
                     Err(Status::with_metadata(
                         RpcCode::Unknown,
                         error_messages::UNKNOWN,
                         map,
                     ))
-                } else {
-                    let requests = res.json::<Vec<ServiceRequestData>>().await.unwrap();
-                    Ok(Response::new(get::Response { requests }))
                 }
             }
+        }
+    }
 
-            _ => Err(Status::new(
-                tonic::Code::InvalidArgument,
-                error_messages::INVALID_PAYLOAD,
-            )),
+    async fn get(&self, request: Request<get::Request>) -> Result<Response<get::Response>> {
+        let get::Request { key, value } = request.into_inner();
+
+        let res = self.client.get(key, value).await;
+
+        match res {
+            Ok(values) => Ok(Response::new(get::Response { requests: values })),
+
+            Err(ClientErrorKind::InternalError(e)) => {
+                Err(Status::internal(error_messages::UNKNOWN))
+            }
+
+            Err(ClientErrorKind::RequestError { code, body }) => {
+                let mut map = MetadataMap::new();
+                map.insert("error", body.parse().unwrap());
+
+                Err(Status::with_metadata(
+                    RpcCode::Unknown,
+                    error_messages::UNKNOWN,
+                    map,
+                ))
+            }
         }
     }
 
@@ -209,31 +159,26 @@ impl ServiceRequest for ServiceRequestService {
     ) -> Result<Response<get_by_id::Response>> {
         let get_by_id::Request { request_id } = request.into_inner();
 
-        if request_id.is_empty() {
-            Err(Status::new(
-                tonic::Code::InvalidArgument,
-                error_messages::INVALID_PAYLOAD,
-            ))
-        } else {
-            let res = self.client.get("id", request_id).await.unwrap();
+        let res = self.client.get("id", request_id).await;
 
-            if !res.status().is_success() {
+        match res {
+            Ok(values) => Ok(Response::new(get_by_id::Response {
+                request: values.into_iter().next(),
+            })),
+
+            Err(ClientErrorKind::InternalError(e)) => {
+                Err(Status::internal(error_messages::UNKNOWN))
+            }
+
+            Err(ClientErrorKind::RequestError { code, body }) => {
                 let mut map = MetadataMap::new();
-                map.insert(
-                    "error",
-                    res.text().await.unwrap_or_default().parse().unwrap(),
-                );
+                map.insert("error", body.parse().unwrap());
 
                 Err(Status::with_metadata(
                     RpcCode::Unknown,
                     error_messages::UNKNOWN,
                     map,
                 ))
-            } else {
-                let values = res.json::<Vec<ServiceRequestData>>().await.unwrap();
-                Ok(Response::new(get_by_id::Response {
-                    request: values.into_iter().next(),
-                }))
             }
         }
     }
@@ -247,35 +192,25 @@ impl ServiceRequest for ServiceRequestService {
             user_id,
         } = request.into_inner();
 
-        match (request_id.is_empty(), user_id.is_empty()) {
-            (false, false) => {
-                let res = self
-                    .client
-                    .complete_service(request_id, user_id)
-                    .await
-                    .unwrap();
+        let res = self.client.complete_service(request_id, user_id).await;
 
-                if !res.status().is_success() {
-                    let mut map = MetadataMap::new();
-                    map.insert(
-                        "error",
-                        res.text().await.unwrap_or_default().parse().unwrap(),
-                    );
+        match res {
+            Ok(_) => Ok(Response::new(complete_service::Response {})),
 
-                    Err(Status::with_metadata(
-                        RpcCode::Unknown,
-                        error_messages::UNKNOWN,
-                        map,
-                    ))
-                } else {
-                    Ok(Response::new(complete_service::Response {}))
-                }
+            Err(ClientErrorKind::InternalError(e)) => {
+                Err(Status::internal(error_messages::UNKNOWN))
             }
 
-            _ => Err(Status::new(
-                tonic::Code::InvalidArgument,
-                error_messages::INVALID_PAYLOAD,
-            )),
+            Err(ClientErrorKind::RequestError { code, body }) => {
+                let mut map = MetadataMap::new();
+                map.insert("error", body.parse().unwrap());
+
+                Err(Status::with_metadata(
+                    RpcCode::Unknown,
+                    error_messages::UNKNOWN,
+                    map,
+                ))
+            }
         }
     }
 
@@ -283,7 +218,31 @@ impl ServiceRequest for ServiceRequestService {
         &self,
         request: Request<apply_provider::Request>,
     ) -> Result<Response<apply_provider::Response>> {
-        todo!()
+        let apply_provider::Request {
+            request_id,
+            provider,
+        } = request.into_inner();
+
+        let res = self.client.apply_as_provider(request_id, provider).await;
+
+        match res {
+            Ok(_) => Ok(Response::new(apply_provider::Response {})),
+
+            Err(ClientErrorKind::InternalError(e)) => {
+                Err(Status::internal(error_messages::UNKNOWN))
+            }
+
+            Err(ClientErrorKind::RequestError { code, body }) => {
+                let mut map = MetadataMap::new();
+                map.insert("error", body.parse().unwrap());
+
+                Err(Status::with_metadata(
+                    RpcCode::Unknown,
+                    error_messages::UNKNOWN,
+                    map,
+                ))
+            }
+        }
     }
 
     // CONDITIONS :
@@ -292,40 +251,42 @@ impl ServiceRequest for ServiceRequestService {
         &self,
         request: Request<select_provider::Request>,
     ) -> Result<Response<select_provider::Response>> {
-        todo!()
+        let select_provider::Request {
+            request_id,
+            provider,
+            caller,
+        } = request.into_inner();
+
+        let res = self
+            .client
+            .select_provider(request_id, provider, caller)
+            .await;
+
+        match res {
+            Ok(_) => Ok(Response::new(select_provider::Response {})),
+
+            Err(ClientErrorKind::InternalError(e)) => {
+                Err(Status::internal(error_messages::UNKNOWN))
+            }
+
+            Err(ClientErrorKind::RequestError { code, body }) => {
+                let mut map = MetadataMap::new();
+                map.insert("error", body.parse().unwrap());
+
+                Err(Status::with_metadata(
+                    RpcCode::Unknown,
+                    error_messages::UNKNOWN,
+                    map,
+                ))
+            }
+        }
     }
 
+    #[allow(unused)]
     async fn get_commitment(
         &self,
         request: Request<get_commitment::Request>,
     ) -> Result<Response<get_commitment::Response>> {
         todo!()
-        // let payload = request.into_inner().payload;
-
-        // match payload {
-        //     Some(get_commitment::Payload { request_id }) => {
-        //         let main_contract = MainContract::new(AdminAccount::new());
-
-        //         let commitment = main_contract
-        //             .get_commitment_of(&request_id)
-        //             .await
-        //             .map_err(|e| {
-        //                 let mut s = Status::unknown(error_messages::UNKNOWN);
-        //                 s.metadata_mut()
-        //                     .append("error", e.to_string().parse().unwrap());
-        //                 s
-        //             })
-        //             .unwrap();
-
-        //         Ok(Response::new(get_commitment::Response {
-        //             commitment: Some(commitment),
-        //         }))
-        //     }
-
-        //     _ => Err(Status::new(
-        //         tonic::Code::InvalidArgument,
-        //         error_messages::INVALID_PAYLOAD,
-        //     )),
-        // }
     }
 }

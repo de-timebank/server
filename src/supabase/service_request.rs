@@ -1,31 +1,31 @@
-use super::{rpc::ServiceRequestRpc, SupabaseClient};
-use crate::proto::timebank::servicerequest::create;
+use super::{error_for_status, rpc::ServiceRequestRpc, ClientErrorKind, SupabaseClient};
+use crate::proto::timebank::servicerequest::{create, ServiceRequestData};
 
 use postgrest::Builder;
-use reqwest::{Error, Response};
 use serde::Serialize;
 use serde_json::json;
 
-pub struct ServiceRequest {
+pub struct ServiceRequestClient {
     client: SupabaseClient,
 }
 
-impl ServiceRequest {
-    fn new() -> Self {
+impl ServiceRequestClient {
+    pub fn new() -> Self {
         Self {
             client: SupabaseClient::new(),
         }
     }
 
-    async fn create<T>(
+    pub async fn create<T>(
         &self,
         requestor: T,
         request_data: create::NewServiceRequestData,
-    ) -> Result<Response, Error>
+    ) -> Result<ServiceRequestData, ClientErrorKind>
     where
         T: Serialize,
     {
-        self.client
+        let res = self
+            .client
             .rpc(
                 ServiceRequestRpc::Create,
                 json!({
@@ -34,45 +34,86 @@ impl ServiceRequest {
                 })
                 .to_string(),
             )
-            .execute()
+            .await?;
+
+        let res = error_for_status(res).await?;
+        let values = res
+            .json::<Vec<ServiceRequestData>>()
             .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        Ok(values.into_iter().next().unwrap_or_default())
     }
 
-    async fn get<T, U>(&self, column: T, filter: U) -> Result<Response, Error>
+    pub async fn get<T, U>(
+        &self,
+        column: T,
+        filter: U,
+    ) -> Result<Vec<ServiceRequestData>, ClientErrorKind>
     where
         T: AsRef<str>,
         U: AsRef<str>,
     {
-        self.table().eq(column, filter).execute().await
+        let res = self
+            .table()
+            .eq(column, filter)
+            .execute()
+            .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        let res = error_for_status(res).await?;
+        let values = res
+            .json::<Vec<ServiceRequestData>>()
+            .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        Ok(values)
     }
 
-    async fn update<T, U>(&self, id: T, body: U) -> Result<Response, Error>
+    pub async fn update<T, U>(&self, id: T, body: U) -> Result<ServiceRequestData, ClientErrorKind>
     where
         T: AsRef<str>,
         U: Into<String>,
     {
-        self.table().eq("id", id).update(body).execute().await
+        let res = self
+            .table()
+            .eq("id", id)
+            .update(body)
+            .execute()
+            .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        let res = error_for_status(res).await?;
+        let values = res
+            .json::<Vec<ServiceRequestData>>()
+            .await
+            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+
+        Ok(values.into_iter().next().unwrap_or_default())
     }
 
-    async fn delete<T>(&self, id: T) -> Result<Response, Error>
+    pub async fn delete<T>(&self, id: T) -> Result<(), ClientErrorKind>
     where
         T: Serialize,
     {
-        self.client
+        let res = self
+            .client
             .rpc(
                 ServiceRequestRpc::Delete,
                 json!({ "_request_id": id }).to_string(),
             )
-            .execute()
-            .await
+            .await?;
+        error_for_status(res).await?;
+        Ok(())
     }
 
-    async fn apply_as_provider<T, U>(&self, id: T, provider: U) -> Result<Response, Error>
+    pub async fn apply_as_provider<T, U>(&self, id: T, provider: U) -> Result<(), ClientErrorKind>
     where
         T: Serialize,
         U: Serialize,
     {
-        self.client
+        let res = self
+            .client
             .rpc(
                 ServiceRequestRpc::ApplyProvider,
                 json!({
@@ -81,17 +122,24 @@ impl ServiceRequest {
                 })
                 .to_string(),
             )
-            .execute()
-            .await
+            .await?;
+        error_for_status(res).await?;
+        Ok(())
     }
 
-    async fn select_provider<T, U, V>(&self, id: T, provider: U, user: V) -> Result<Response, Error>
+    pub async fn select_provider<T, U, V>(
+        &self,
+        id: T,
+        provider: U,
+        user: V,
+    ) -> Result<(), ClientErrorKind>
     where
         T: Serialize,
         U: Serialize,
         V: Serialize,
     {
-        self.client
+        let res = self
+            .client
             .rpc(
                 ServiceRequestRpc::SelectProvider,
                 json!({
@@ -101,16 +149,18 @@ impl ServiceRequest {
                 })
                 .to_string(),
             )
-            .execute()
-            .await
+            .await?;
+        error_for_status(res).await?;
+        Ok(())
     }
 
-    async fn complete_service<T, U>(&self, id: T, requestor: U) -> Result<Response, Error>
+    pub async fn complete_service<T, U>(&self, id: T, requestor: U) -> Result<(), ClientErrorKind>
     where
         T: Serialize,
         U: Serialize,
     {
-        self.client
+        let res = self
+            .client
             .rpc(
                 ServiceRequestRpc::CompleteService,
                 json!({
@@ -119,18 +169,13 @@ impl ServiceRequest {
                 })
                 .to_string(),
             )
-            .execute()
-            .await
+            .await?;
+        error_for_status(res).await?;
+        Ok(())
     }
 
-    async fn get_by_id<T>(&self, id: T) -> Result<Response, Error>
-    where
-        T: AsRef<str>,
-    {
-        self.get("id", id).await
-    }
-
-    async fn get_commitment_of<T>(&self, id: T)
+    #[allow(unused)]
+    pub async fn get_commitment_of<T>(&self, id: T)
     where
         T: AsRef<str>,
     {
