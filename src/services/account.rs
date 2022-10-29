@@ -7,7 +7,7 @@ use tonic::{Request, Response, Status};
 
 use crate::proto::account::user_server::User;
 use crate::proto::account::{get, get_rating, update, TUserProfile};
-use crate::proto::timebank::servicerating::TServiceRating;
+use crate::proto::timebank::rating::RatingData;
 use crate::services::{error_messages, util, Result};
 
 pub struct UserService {
@@ -119,7 +119,7 @@ impl User for UserService {
 
                 match res.status() {
                     StatusCode::OK => {
-                        let ratings: Vec<TServiceRating> = res
+                        let ratings: Vec<RatingData> = res
                             .json()
                             .await
                             .expect("UNABLE TO PARSE RESPONSE DATA AS `Vec<TServiceRating>`");

@@ -5,15 +5,16 @@
 //      in the request metadata.
 //
 
-pub mod proto;
-pub mod services;
+mod proto;
+mod services;
+mod starknet;
+mod supabase;
 
 use dotenv::dotenv;
 use proto::{account::user_server::UserServer, auth::auth_server::AuthServer};
 use services::collection::{
-    service_rating::{ServiceRatingServer, ServiceRatingService},
+    rating::{RatingServer, RatingService},
     service_request::{ServiceRequestServer, ServiceRequestService},
-    service_request_bid::{ServiceRequestBidServer, ServiceRequestBidService},
 };
 use services::{account::UserService, auth::AuthService};
 use tonic::transport::Server;
@@ -21,7 +22,6 @@ use tonic::transport::Server;
 // async fn interceptor(req: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
 //     match req.metadata().get("access_token") {
 //         Some(_) => Ok(req),
-
 //         None => Err(tonic::Status::unauthenticated("MISSING ACCESS_TOKEN")),
 //     }
 // }
@@ -37,8 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Server::builder()
         .add_service(ServiceRequestServer::new(ServiceRequestService::new()))
-        .add_service(ServiceRatingServer::new(ServiceRatingService::new()))
-        .add_service(ServiceRequestBidServer::new(ServiceRequestBidService::new()))
+        .add_service(RatingServer::new(RatingService::default()))
         .add_service(UserServer::new(UserService::new()))
         .add_service(AuthServer::new(AuthService::default()))
         .serve(addr)

@@ -1,6 +1,7 @@
 pub mod account;
 pub mod auth;
-pub mod collection;
+pub mod rating;
+pub mod service_request;
 
 pub type Result<T> = std::result::Result<T, tonic::Status>;
 
