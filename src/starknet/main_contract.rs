@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use super::admin_account::AdminAccount;
-use crate::proto::timebank::servicerequest::TServiceCommitment;
+use crate::proto::timebank::servicerequest::ServiceCommitmentData;
 use starknet::{
     accounts::Call,
     core::{
@@ -41,7 +41,7 @@ impl MainContract {
     pub async fn get_commitment_of(
         &self,
         request_id: &str,
-    ) -> Result<TServiceCommitment, SequencerGatewayProviderError> {
+    ) -> Result<ServiceCommitmentData, SequencerGatewayProviderError> {
         let hash = starknet_keccak(request_id.as_bytes());
         let res = self
             .account
@@ -61,7 +61,7 @@ impl MainContract {
 
         let commitment = res.result;
 
-        Ok(TServiceCommitment {
+        Ok(ServiceCommitmentData {
             requestor: commitment[0].to_string(),
             provider: commitment[1].to_string(),
             amount: commitment[2].to_string().parse().unwrap(),

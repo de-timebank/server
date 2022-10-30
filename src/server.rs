@@ -11,12 +11,12 @@ mod starknet;
 mod supabase;
 
 use dotenv::dotenv;
-use proto::{account::user_server::UserServer, auth::auth_server::AuthServer};
-use services::collection::{
+use proto::timebank::user::user_server::UserServer;
+use services::{
     rating::{RatingServer, RatingService},
     service_request::{ServiceRequestServer, ServiceRequestService},
+    user::UserService,
 };
-use services::{account::UserService, auth::AuthService};
 use tonic::transport::Server;
 
 // async fn interceptor(req: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
@@ -37,9 +37,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Server::builder()
         .add_service(ServiceRequestServer::new(ServiceRequestService::new()))
-        .add_service(RatingServer::new(RatingService::default()))
+        .add_service(RatingServer::new(RatingService::new()))
         .add_service(UserServer::new(UserService::new()))
-        .add_service(AuthServer::new(AuthService::default()))
         .serve(addr)
         .await?;
 

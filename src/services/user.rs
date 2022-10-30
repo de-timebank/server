@@ -2,10 +2,9 @@
 
 use tonic::{metadata::MetadataMap, Code as RpcCode, Request, Response, Status};
 
-use crate::proto::timebank::rating::RatingData;
 use crate::proto::timebank::user::user_server::User;
 use crate::proto::timebank::user::{get, get_by_id, get_rating, update};
-use crate::services::{error_messages, util, Result};
+use crate::services::{error_messages, Result};
 use crate::supabase::user::UserClient;
 use crate::supabase::ClientErrorKind;
 

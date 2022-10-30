@@ -5,6 +5,7 @@ pub mod user;
 
 pub type Result<T> = std::result::Result<T, tonic::Status>;
 
+#[allow(unused)]
 pub mod error_messages {
     pub const INVALID_PAYLOAD: &str = "INVALID PAYLOAD";
     pub const UNKNOWN: &str = "AN ERROR HAS OCCURED";
