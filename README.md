@@ -6,7 +6,7 @@ git clone https://github.com/de-timebank/server.git ./budi-backend/server
 ```
 2. Enter the repo directory and switch to `development` branch
 ```
-cd timebank-backend/server && git switch development
+cd budi-backend/server && git switch development
 ```
 3. Build the Docker image
 ```
