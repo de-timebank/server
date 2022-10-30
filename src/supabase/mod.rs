@@ -1,6 +1,7 @@
 pub mod rating;
 pub(self) mod rpc;
 pub mod service_request;
+pub mod user;
 
 use core::fmt;
 use postgrest::{Builder, Postgrest};

@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .compile(
             &[
                 "proto/auth.proto",
-                "proto/account.proto",
+                "proto/user.proto",
                 "proto/collection/rating.proto",
                 "proto/collection/service-request.proto",
             ],
