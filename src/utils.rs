@@ -1,11 +1,9 @@
+pub mod account;
 pub mod auth;
-pub mod rating;
-pub mod service_request;
-pub mod user;
+pub mod collection;
 
 pub type Result<T> = std::result::Result<T, tonic::Status>;
 
-#[allow(unused)]
 pub mod error_messages {
     pub const INVALID_PAYLOAD: &str = "INVALID PAYLOAD";
     pub const UNKNOWN: &str = "AN ERROR HAS OCCURED";
@@ -72,5 +70,3 @@ pub mod util {
         }
     }
 }
-
-// pub fn get_request_payload<T>(request: Request<T>) ->

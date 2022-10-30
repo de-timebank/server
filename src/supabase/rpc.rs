@@ -29,6 +29,13 @@ pub enum RatingRpc {
     Delete,
 }
 
+#[allow(unused)]
+#[derive(AsRefStr, Debug)]
+pub enum UserRpc {
+    #[strum(serialize = "user_getrating")]
+    GetRating,
+}
+
 macro_rules! rpc_method {
     ($rpc_enum:ty) => {
         impl RpcMethod for $rpc_enum {
