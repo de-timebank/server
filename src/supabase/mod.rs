@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod rating;
 pub(self) mod rpc;
 pub mod service_request;
