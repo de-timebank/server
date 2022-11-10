@@ -13,6 +13,7 @@ mod supabase;
 use dotenv::dotenv;
 use proto::timebank::user::user_server::UserServer;
 use services::{
+    auth::{AuthServer, AuthService},
     rating::{RatingServer, RatingService},
     service_request::{ServiceRequestServer, ServiceRequestService},
     user::UserService,
@@ -39,6 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_service(ServiceRequestServer::new(ServiceRequestService::new()))
         .add_service(RatingServer::new(RatingService::new()))
         .add_service(UserServer::new(UserService::new()))
+        .add_service(AuthServer::new(AuthService::new()))
         .serve(addr)
         .await?;
 

@@ -1,7 +1,9 @@
 use super::{error_for_status, ClientErrorKind, SupabaseClient};
-use crate::proto::timebank::user::UserProfile;
+use crate::proto::timebank::user::{NewUserProfile, UserProfile};
 
 use postgrest::Builder;
+use serde::Serialize;
+use serde_json::json;
 
 pub struct UserClient {
     client: SupabaseClient,
@@ -55,6 +57,37 @@ impl UserClient {
             .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
 
         Ok(values.into_iter().next().unwrap_or_default())
+    }
+
+    pub(crate) async fn create_profile<T>(
+        &self,
+        user_id: T,
+        profile: NewUserProfile,
+    ) -> Result<UserProfile, reqwest::Error>
+    where
+        T: AsRef<str> + Serialize + Copy + Clone,
+    {
+        let res = self
+            .table()
+            .eq("user_id", user_id)
+            .insert(
+                json!([{
+                    "user_id": user_id,
+                    "name": profile.name,
+                    "gender": profile.gender,
+                    "matric_number": profile.matric_number,
+                    "skills": profile.skills,
+                    "contacts":profile.contacts
+                }])
+                .to_string(),
+            )
+            .execute()
+            .await?
+            .error_for_status()?
+            .json::<Vec<UserProfile>>()
+            .await?;
+
+        Ok(res.into_iter().next().unwrap_or_default())
     }
 
     fn table(&self) -> Builder {
