@@ -1,9 +1,9 @@
-// Service for handling user's account
-
 use tonic::{metadata::MetadataMap, Code as RpcCode, Request, Response, Status};
 
-use crate::proto::timebank::user::user_server::User;
-use crate::proto::timebank::user::{get, get_by_id, get_rating, update};
+pub use crate::proto::timebank::user::user_server::UserServer;
+use crate::proto::timebank::user::{
+    get, get_by_id, get_credit_balance, get_rating, update, user_server::User,
+};
 use crate::services::{error_messages, Result};
 use crate::supabase::user::UserClient;
 use crate::supabase::ClientErrorKind;
@@ -109,6 +109,13 @@ impl User for UserService {
         &self,
         request: Request<get_rating::Request>,
     ) -> Result<Response<get_rating::Response>> {
+        todo!()
+    }
+
+    async fn get_credit_balance(
+        &self,
+        request: Request<get_credit_balance::Request>,
+    ) -> Result<Response<get_credit_balance::Response>> {
         todo!()
     }
 }

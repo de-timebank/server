@@ -49,47 +49,43 @@ impl ServiceRequestClient {
         &self,
         column: T,
         filter: U,
-    ) -> Result<Vec<ServiceRequestData>, ClientErrorKind>
+    ) -> Result<Vec<ServiceRequestData>, reqwest::Error>
     where
         T: AsRef<str>,
         U: AsRef<str>,
     {
-        let res = self
+        let values = self
             .table()
             .eq(column, filter)
             .execute()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
-
-        let res = error_for_status(res).await?;
-        let values = res
+            .await?
+            .error_for_status()?
             .json::<Vec<ServiceRequestData>>()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+            .await?;
 
         Ok(values)
     }
 
-    pub async fn update<T, U>(&self, id: T, body: U) -> Result<ServiceRequestData, ClientErrorKind>
+    pub async fn update<T, U>(
+        &self,
+        id: T,
+        body: U,
+    ) -> Result<Vec<ServiceRequestData>, reqwest::Error>
     where
         T: AsRef<str>,
         U: Into<String>,
     {
-        let res = self
+        let values = self
             .table()
             .eq("id", id)
             .update(body)
             .execute()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
-
-        let res = error_for_status(res).await?;
-        let values = res
+            .await?
+            .error_for_status()?
             .json::<Vec<ServiceRequestData>>()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+            .await?;
 
-        Ok(values.into_iter().next().unwrap_or_default())
+        Ok(values)
     }
 
     pub async fn delete<T>(&self, id: T) -> Result<(), ClientErrorKind>
