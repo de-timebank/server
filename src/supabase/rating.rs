@@ -1,4 +1,4 @@
-use super::{error_for_status, rpc::RatingRpc, ClientErrorKind, SupabaseClient};
+use super::{rpc::RatingRpc, ClientErrorKind, SupabaseClient};
 use crate::proto::timebank::rating::{create::NewRatingData, RatingData};
 
 use postgrest::Builder;
@@ -40,7 +40,6 @@ impl RatingClient {
             )
             .await?;
 
-        let res = error_for_status(res).await?;
         let values = res
             .json::<Vec<RatingData>>()
             .await
@@ -74,7 +73,6 @@ impl RatingClient {
             )
             .await?;
 
-        let res = error_for_status(res).await?;
         let values = res
             .json::<Vec<RatingData>>()
             .await
@@ -83,24 +81,19 @@ impl RatingClient {
         Ok(values.into_iter().next().unwrap_or_default())
     }
 
-    pub async fn get<T, U>(&self, column: T, filter: U) -> Result<Vec<RatingData>, ClientErrorKind>
+    pub async fn get<T, U>(&self, column: T, filter: U) -> Result<Vec<RatingData>, reqwest::Error>
     where
         T: AsRef<str>,
         U: AsRef<str>,
     {
-        let res = self
+        let values = self
             .table()
             .eq(column, filter)
             .execute()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
-
-        let res = error_for_status(res).await?;
-        let values = res
+            .await?
+            .error_for_status()?
             .json::<Vec<RatingData>>()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
-
+            .await?;
         Ok(values)
     }
 
@@ -117,7 +110,6 @@ impl RatingClient {
             .await
             .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
 
-        let res = error_for_status(res).await?;
         let values = res
             .json::<Vec<RatingData>>()
             .await
@@ -130,14 +122,12 @@ impl RatingClient {
     where
         T: AsRef<str>,
     {
-        let res = self
-            .table()
+        self.table()
             .eq("id", id)
             .delete()
             .execute()
             .await
             .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
-        error_for_status(res).await?;
         Ok(())
     }
 

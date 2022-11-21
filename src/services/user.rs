@@ -1,4 +1,4 @@
-use tonic::{metadata::MetadataMap, Code as RpcCode, Request, Response, Status};
+use tonic::{Request, Response, Status};
 
 pub use crate::proto::timebank::user::user_server::UserServer;
 use crate::proto::timebank::user::{
@@ -34,16 +34,7 @@ impl User for UserService {
                 Err(Status::internal(error_messages::UNKNOWN))
             }
 
-            Err(ClientErrorKind::RequestError { body, .. }) => {
-                let mut map = MetadataMap::new();
-                map.insert("error", body.parse().unwrap());
-
-                Err(Status::with_metadata(
-                    RpcCode::Unknown,
-                    error_messages::UNKNOWN,
-                    map,
-                ))
-            }
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
     }
 
@@ -64,16 +55,7 @@ impl User for UserService {
                 Err(Status::internal(error_messages::UNKNOWN))
             }
 
-            Err(ClientErrorKind::RequestError { body, .. }) => {
-                let mut map = MetadataMap::new();
-                map.insert("error", body.parse().unwrap());
-
-                Err(Status::with_metadata(
-                    RpcCode::Unknown,
-                    error_messages::UNKNOWN,
-                    map,
-                ))
-            }
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
     }
 
@@ -92,19 +74,11 @@ impl User for UserService {
                 Err(Status::internal(error_messages::UNKNOWN))
             }
 
-            Err(ClientErrorKind::RequestError { body, .. }) => {
-                let mut map = MetadataMap::new();
-                map.insert("error", body.parse().unwrap());
-
-                Err(Status::with_metadata(
-                    RpcCode::Unknown,
-                    error_messages::UNKNOWN,
-                    map,
-                ))
-            }
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
     }
 
+    #[allow(unused)]
     async fn get_rating(
         &self,
         request: Request<get_rating::Request>,
@@ -112,6 +86,7 @@ impl User for UserService {
         todo!()
     }
 
+    #[allow(unused)]
     async fn get_credit_balance(
         &self,
         request: Request<get_credit_balance::Request>,

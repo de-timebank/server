@@ -1,4 +1,4 @@
-use super::{error_for_status, ClientErrorKind, SupabaseClient};
+use super::{ClientErrorKind, SupabaseClient};
 use crate::proto::timebank::user::{NewUserProfile, UserProfile};
 
 use postgrest::Builder;
@@ -28,7 +28,7 @@ impl UserClient {
             .await
             .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
 
-        let res = error_for_status(res).await?;
+        // let res = error_for_status(res).await?;
         let values = res
             .json::<Vec<UserProfile>>()
             .await
@@ -50,7 +50,7 @@ impl UserClient {
             .await
             .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
 
-        let res = error_for_status(res).await?;
+        // let res = error_for_status(res).await?;
         let values = res
             .json::<Vec<UserProfile>>()
             .await
