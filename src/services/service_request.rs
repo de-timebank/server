@@ -43,9 +43,7 @@ impl ServiceRequest for ServiceRequestService {
                         request: Some(value),
                     })),
 
-                    Err(ClientErrorKind::InternalError(e)) => {
-                        Err(Status::internal(error_messages::UNKNOWN))
-                    }
+                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
                     Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
                 }
@@ -86,7 +84,7 @@ impl ServiceRequest for ServiceRequestService {
             let res = self.client.delete(payload.request_id).await;
 
             match res {
-                Ok(_) => Ok(Response::new(delete::Response {})),
+                Ok(()) => Ok(Response::new(delete::Response {})),
 
                 Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
@@ -136,11 +134,9 @@ impl ServiceRequest for ServiceRequestService {
         let res = self.client.complete_service(request_id, user_id).await;
 
         match res {
-            Ok(_) => Ok(Response::new(complete_service::Response {})),
+            Ok(()) => Ok(Response::new(complete_service::Response {})),
 
-            Err(ClientErrorKind::InternalError(e)) => {
-                Err(Status::internal(error_messages::UNKNOWN))
-            }
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
@@ -158,7 +154,7 @@ impl ServiceRequest for ServiceRequestService {
         let res = self.client.apply_as_provider(request_id, provider).await;
 
         match res {
-            Ok(_) => Ok(Response::new(apply_provider::Response {})),
+            Ok(()) => Ok(Response::new(apply_provider::Response {})),
 
             Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
@@ -184,11 +180,9 @@ impl ServiceRequest for ServiceRequestService {
             .await;
 
         match res {
-            Ok(_) => Ok(Response::new(select_provider::Response {})),
+            Ok(()) => Ok(Response::new(select_provider::Response {})),
 
-            Err(ClientErrorKind::InternalError(e)) => {
-                Err(Status::internal(error_messages::UNKNOWN))
-            }
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }

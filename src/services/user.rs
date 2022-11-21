@@ -4,7 +4,7 @@ pub use crate::proto::timebank::user::user_server::UserServer;
 use crate::proto::timebank::user::{
     get, get_by_id, get_credit_balance, get_rating, update, user_server::User,
 };
-use crate::services::{error_messages, Result};
+use crate::services::Result;
 use crate::supabase::user::UserClient;
 use crate::supabase::ClientErrorKind;
 
@@ -30,9 +30,7 @@ impl User for UserService {
         match res {
             Ok(values) => Ok(Response::new(get::Response { users: values })),
 
-            Err(ClientErrorKind::InternalError(_)) => {
-                Err(Status::internal(error_messages::UNKNOWN))
-            }
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
@@ -51,9 +49,7 @@ impl User for UserService {
                 user: values.into_iter().next(),
             })),
 
-            Err(ClientErrorKind::InternalError(_)) => {
-                Err(Status::internal(error_messages::UNKNOWN))
-            }
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
@@ -70,9 +66,7 @@ impl User for UserService {
         match res {
             Ok(value) => Ok(Response::new(update::Response { user: Some(value) })),
 
-            Err(ClientErrorKind::InternalError(_)) => {
-                Err(Status::internal(error_messages::UNKNOWN))
-            }
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }

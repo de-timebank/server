@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use super::{ClientErrorKind, InternalErrorKind, SupabaseError};
+
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct SignUpResponse {
     pub id: String,
@@ -51,7 +53,7 @@ impl AuthClient {
         &self,
         email: T,
         password: U,
-    ) -> Result<SignUpResponse, reqwest::Error>
+    ) -> Result<SignUpResponse, ClientErrorKind>
     where
         T: Serialize,
         U: Serialize,
@@ -69,10 +71,23 @@ impl AuthClient {
                 "password": password
             }))
             .send()
-            .await?
-            .error_for_status()?
-            .json::<SignUpResponse>()
-            .await?;
-        Ok(res)
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
+
+        if res.status().is_success() {
+            let values = res.json::<SignUpResponse>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Ok(values)
+        } else {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        }
     }
 }

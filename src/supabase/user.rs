@@ -1,4 +1,4 @@
-use super::{ClientErrorKind, SupabaseClient};
+use super::{ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError};
 use crate::proto::timebank::user::{NewUserProfile, UserProfile};
 
 use postgrest::Builder;
@@ -26,13 +26,13 @@ impl UserClient {
             .eq(column, filter)
             .execute()
             .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
 
-        // let res = error_for_status(res).await?;
-        let values = res
-            .json::<Vec<UserProfile>>()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+        let values = res.json::<Vec<UserProfile>>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })?;
 
         Ok(values)
     }
@@ -48,15 +48,23 @@ impl UserClient {
             .update(body)
             .execute()
             .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
 
-        // let res = error_for_status(res).await?;
-        let values = res
-            .json::<Vec<UserProfile>>()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+        if res.status().is_success() {
+            let values = res.json::<Vec<UserProfile>>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
 
-        Ok(values.into_iter().next().unwrap_or_default())
+            Ok(values.into_iter().next().unwrap_or_default())
+        } else {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        }
     }
 
     pub(crate) async fn create_profile<T>(

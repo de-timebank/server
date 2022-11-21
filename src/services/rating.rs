@@ -4,7 +4,7 @@ use crate::proto::timebank::rating::{create, delete, get, rating_server::Rating,
 use crate::services::{error_messages, Result};
 use crate::supabase::{rating::RatingClient, ClientErrorKind};
 
-use tonic::{metadata::MetadataMap, Code as RpcCode, Request, Response, Status};
+use tonic::{Request, Response, Status};
 
 pub struct RatingService {
     client: RatingClient,
@@ -36,9 +36,7 @@ impl Rating for RatingService {
                         rating: Some(value),
                     })),
 
-                    Err(ClientErrorKind::InternalError(_)) => {
-                        Err(Status::internal(error_messages::UNKNOWN))
-                    }
+                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
                     Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
                 }
@@ -63,9 +61,7 @@ impl Rating for RatingService {
                         rating: Some(value),
                     })),
 
-                    Err(ClientErrorKind::InternalError(_)) => {
-                        Err(Status::internal(error_messages::UNKNOWN))
-                    }
+                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
                     Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
                 }
@@ -83,9 +79,7 @@ impl Rating for RatingService {
         match res {
             Ok(values) => Ok(Response::new(get::Response { ratings: values })),
 
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
-
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(e) => Err(Status::unknown(e.to_string())),
         }
     }
 
@@ -100,9 +94,7 @@ impl Rating for RatingService {
         match res {
             Ok(_) => Ok(Response::new(delete::Response {})),
 
-            Err(ClientErrorKind::InternalError(_)) => {
-                Err(Status::internal(error_messages::UNKNOWN))
-            }
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
@@ -121,9 +113,7 @@ impl Rating for RatingService {
                 rating: Some(value),
             })),
 
-            Err(ClientErrorKind::InternalError(_)) => {
-                Err(Status::internal(error_messages::UNKNOWN))
-            }
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }

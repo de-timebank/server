@@ -1,4 +1,4 @@
-use super::{rpc::RatingRpc, ClientErrorKind, SupabaseClient};
+use super::{rpc::RatingRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError};
 use crate::proto::timebank::rating::{create::NewRatingData, RatingData};
 
 use postgrest::Builder;
@@ -40,10 +40,9 @@ impl RatingClient {
             )
             .await?;
 
-        let values = res
-            .json::<Vec<RatingData>>()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+        let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })?;
 
         Ok(values.into_iter().next().unwrap_or_default())
     }
@@ -73,28 +72,40 @@ impl RatingClient {
             )
             .await?;
 
-        let values = res
-            .json::<Vec<RatingData>>()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+        let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })?;
 
         Ok(values.into_iter().next().unwrap_or_default())
     }
 
-    pub async fn get<T, U>(&self, column: T, filter: U) -> Result<Vec<RatingData>, reqwest::Error>
+    pub async fn get<T, U>(&self, column: T, filter: U) -> Result<Vec<RatingData>, ClientErrorKind>
     where
         T: AsRef<str>,
         U: AsRef<str>,
     {
-        let values = self
+        let res = self
             .table()
             .eq(column, filter)
             .execute()
-            .await?
-            .error_for_status()?
-            .json::<Vec<RatingData>>()
-            .await?;
-        Ok(values)
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
+
+        if res.status().is_success() {
+            let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Ok(values)
+        } else {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        }
     }
 
     pub async fn update<T, U>(&self, id: T, body: U) -> Result<RatingData, ClientErrorKind>
@@ -108,27 +119,48 @@ impl RatingClient {
             .update(body)
             .execute()
             .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
 
-        let values = res
-            .json::<Vec<RatingData>>()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+        if res.status().is_success() {
+            let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
 
-        Ok(values.into_iter().next().unwrap_or_default())
+            Ok(values.into_iter().next().unwrap_or_default())
+        } else {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        }
     }
 
     pub async fn delete<T>(&self, id: T) -> Result<(), ClientErrorKind>
     where
         T: AsRef<str>,
     {
-        self.table()
+        let res = self
+            .table()
             .eq("id", id)
             .delete()
             .execute()
             .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
-        Ok(())
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
+
+        if res.status().is_success() {
+            Ok(())
+        } else {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        }
     }
 
     fn table(&self) -> Builder {

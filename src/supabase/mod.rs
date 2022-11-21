@@ -6,23 +6,37 @@ pub mod user;
 
 use core::fmt;
 use postgrest::{Builder, Postgrest};
-use reqwest::{Response, StatusCode};
+use reqwest::Response;
 use serde::Deserialize;
-use std::fmt::Display;
+
+#[derive(Debug)]
+pub enum InternalErrorKind {
+    ParsingError(String),
+    RequestError(String),
+}
+
+impl std::error::Error for InternalErrorKind {}
+
+impl fmt::Display for InternalErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            InternalErrorKind::ParsingError(s) => write!(f, "parsing error : {}", s),
+            InternalErrorKind::RequestError(s) => write!(f, "request error : {}", s),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum ClientErrorKind {
     SupabaseError(SupabaseError),
-    InternalError(Box<dyn std::error::Error + 'static>),
+    InternalError(InternalErrorKind),
 }
 
 impl fmt::Display for ClientErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ClientErrorKind::SupabaseError(e) => e.fmt(f),
-            ClientErrorKind::InternalError(e) => {
-                write!(f, "{}", e)
-            }
+            ClientErrorKind::InternalError(e) => e.fmt(f),
         }
     }
 }
@@ -31,7 +45,7 @@ impl std::error::Error for ClientErrorKind {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             ClientErrorKind::SupabaseError(e) => Some(e),
-            ClientErrorKind::InternalError(e) => Some(e.as_ref()),
+            ClientErrorKind::InternalError(e) => Some(e),
         }
     }
 }
@@ -49,9 +63,7 @@ impl fmt::Display for SupabaseError {
         write!(
             f,
             "supabase error : {}",
-            self.message
-                .as_ref()
-                .unwrap_or(&String::from("unknown error"))
+            self.message.as_ref().unwrap_or(&String::from("unknown"))
         )
     }
 }
@@ -75,27 +87,29 @@ impl SupabaseClient {
         }
     }
 
-    async fn rpc<T, U>(&self, function: T, params: U) -> Result<Response, reqwest::Error>
+    async fn rpc<T, U>(&self, function: T, params: U) -> Result<Response, ClientErrorKind>
     where
         T: rpc::RpcMethod,
         U: Into<String>,
     {
-        self.postgrest_client
+        let res = self
+            .postgrest_client
             .rpc(function.name(), params)
             .execute()
-            .await?
-            .error_for_status()
-        // .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
 
-        // if !res.status().is_success() {
-        //     let err = res
-        //         .json::<SupabaseError>()
-        //         .await
-        //         .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
-        //     Err(ClientErrorKind::SupabaseError(err))
-        // } else {
-        //     Ok(res)
-        // }
+        if !res.status().is_success() {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        } else {
+            Ok(res)
+        }
     }
 
     fn from<T>(&self, table: T) -> Builder
@@ -105,17 +119,3 @@ impl SupabaseClient {
         self.postgrest_client.from(table)
     }
 }
-
-// A utility function for converting a response into an error if its an error-type response.
-// pub(self) async fn error_for_status(res: Response) -> Result<Response, ClientErrorKind> {
-//     if res.status().is_client_error() || res.status().is_server_error() {
-//         let code = res.status();
-//         let body = res
-//             .json::<String>()
-//             .await
-//             .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
-//         Err(ClientErrorKind::RequestError { code, body })
-//     } else {
-//         Ok(res)
-//     }
-// }

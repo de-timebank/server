@@ -1,4 +1,6 @@
-use super::{rpc::ServiceRequestRpc, ClientErrorKind, SupabaseClient};
+use super::{
+    rpc::ServiceRequestRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError,
+};
 use crate::proto::timebank::servicerequest::{create, ServiceRequestData};
 
 use postgrest::Builder;
@@ -36,10 +38,9 @@ impl ServiceRequestClient {
             )
             .await?;
 
-        let values = res
-            .json::<Vec<ServiceRequestData>>()
-            .await
-            .map_err(|e| ClientErrorKind::InternalError(Box::new(e)))?;
+        let values = res.json::<Vec<ServiceRequestData>>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })?;
 
         Ok(values.into_iter().next().unwrap_or_default())
     }
@@ -48,41 +49,67 @@ impl ServiceRequestClient {
         &self,
         column: T,
         filter: U,
-    ) -> Result<Vec<ServiceRequestData>, reqwest::Error>
+    ) -> Result<Vec<ServiceRequestData>, ClientErrorKind>
     where
         T: AsRef<str>,
         U: AsRef<str>,
     {
-        let values = self
+        let res = self
             .table()
             .eq(column, filter)
             .execute()
-            .await?
-            .error_for_status()?
-            .json::<Vec<ServiceRequestData>>()
-            .await?;
-        Ok(values)
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
+
+        if res.status().is_success() {
+            let values = res.json::<Vec<ServiceRequestData>>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Ok(values)
+        } else {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        }
     }
 
     pub async fn update<T, U>(
         &self,
         id: T,
         body: U,
-    ) -> Result<Vec<ServiceRequestData>, reqwest::Error>
+    ) -> Result<Vec<ServiceRequestData>, ClientErrorKind>
     where
         T: AsRef<str>,
         U: Into<String>,
     {
-        let values = self
+        let res = self
             .table()
             .eq("id", id)
             .update(body)
             .execute()
-            .await?
-            .error_for_status()?
-            .json::<Vec<ServiceRequestData>>()
-            .await?;
-        Ok(values)
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
+
+        if res.status().is_success() {
+            let values = res.json::<Vec<ServiceRequestData>>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Ok(values)
+        } else {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        }
     }
 
     pub async fn delete<T>(&self, id: T) -> Result<(), ClientErrorKind>
