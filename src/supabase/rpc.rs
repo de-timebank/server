@@ -34,6 +34,8 @@ pub enum RatingRpc {
 pub enum UserRpc {
     #[strum(serialize = "users_getbyid")]
     GetById,
+    #[strum(serialize = "users_createnewprofile")]
+    HandleNewUser,
 }
 
 macro_rules! rpc_method {
@@ -48,3 +50,4 @@ macro_rules! rpc_method {
 
 rpc_method!(ServiceRequestRpc);
 rpc_method!(RatingRpc);
+rpc_method!(UserRpc);

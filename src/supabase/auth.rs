@@ -1,3 +1,4 @@
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -82,6 +83,14 @@ impl AuthClient {
             })?;
 
             Ok(values)
+        } else if res.status() == StatusCode::TOO_MANY_REQUESTS {
+            let err = res.text().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::InternalError(
+                InternalErrorKind::RequestError(err),
+            ))
         } else {
             let err = res.json::<SupabaseError>().await.map_err(|e| {
                 ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
