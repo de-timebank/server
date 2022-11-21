@@ -1,4 +1,4 @@
-use super::{error_for_status, rpc::ServiceRequestRpc, ClientErrorKind, SupabaseClient};
+use super::{rpc::ServiceRequestRpc, ClientErrorKind, SupabaseClient};
 use crate::proto::timebank::servicerequest::{create, ServiceRequestData};
 
 use postgrest::Builder;
@@ -36,7 +36,6 @@ impl ServiceRequestClient {
             )
             .await?;
 
-        let res = error_for_status(res).await?;
         let values = res
             .json::<Vec<ServiceRequestData>>()
             .await
@@ -62,7 +61,6 @@ impl ServiceRequestClient {
             .error_for_status()?
             .json::<Vec<ServiceRequestData>>()
             .await?;
-
         Ok(values)
     }
 
@@ -84,7 +82,6 @@ impl ServiceRequestClient {
             .error_for_status()?
             .json::<Vec<ServiceRequestData>>()
             .await?;
-
         Ok(values)
     }
 
@@ -92,14 +89,12 @@ impl ServiceRequestClient {
     where
         T: Serialize,
     {
-        let res = self
-            .client
+        self.client
             .rpc(
                 ServiceRequestRpc::Delete,
                 json!({ "_request_id": id }).to_string(),
             )
             .await?;
-        error_for_status(res).await?;
         Ok(())
     }
 
@@ -108,8 +103,7 @@ impl ServiceRequestClient {
         T: Serialize,
         U: Serialize,
     {
-        let res = self
-            .client
+        self.client
             .rpc(
                 ServiceRequestRpc::ApplyProvider,
                 json!({
@@ -119,7 +113,6 @@ impl ServiceRequestClient {
                 .to_string(),
             )
             .await?;
-        error_for_status(res).await?;
         Ok(())
     }
 
@@ -134,8 +127,7 @@ impl ServiceRequestClient {
         U: Serialize,
         V: Serialize,
     {
-        let res = self
-            .client
+        self.client
             .rpc(
                 ServiceRequestRpc::SelectProvider,
                 json!({
@@ -146,7 +138,6 @@ impl ServiceRequestClient {
                 .to_string(),
             )
             .await?;
-        error_for_status(res).await?;
         Ok(())
     }
 
@@ -155,8 +146,7 @@ impl ServiceRequestClient {
         T: Serialize,
         U: Serialize,
     {
-        let res = self
-            .client
+        self.client
             .rpc(
                 ServiceRequestRpc::CompleteService,
                 json!({
@@ -166,7 +156,6 @@ impl ServiceRequestClient {
                 .to_string(),
             )
             .await?;
-        error_for_status(res).await?;
         Ok(())
     }
 

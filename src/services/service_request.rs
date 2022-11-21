@@ -1,5 +1,4 @@
-use serde_json::json;
-use tonic::{metadata::MetadataMap, Code as RpcCode, Request, Response, Status};
+use tonic::{Request, Response, Status};
 
 use crate::{
     proto::timebank::servicerequest::{
@@ -48,16 +47,7 @@ impl ServiceRequest for ServiceRequestService {
                         Err(Status::internal(error_messages::UNKNOWN))
                     }
 
-                    Err(ClientErrorKind::RequestError { code, body }) => {
-                        let mut map = MetadataMap::new();
-                        map.insert("error", body.parse().unwrap());
-
-                        Err(Status::with_metadata(
-                            RpcCode::Unknown,
-                            error_messages::UNKNOWN,
-                            map,
-                        ))
-                    }
+                    Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
                 }
             }
 
@@ -100,16 +90,7 @@ impl ServiceRequest for ServiceRequestService {
 
                 Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
-                Err(ClientErrorKind::RequestError { code, body }) => {
-                    let mut map = MetadataMap::new();
-                    map.insert("error", body.parse().unwrap());
-
-                    Err(Status::with_metadata(
-                        RpcCode::Unknown,
-                        error_messages::UNKNOWN,
-                        map,
-                    ))
-                }
+                Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
             }
         }
     }
@@ -161,16 +142,7 @@ impl ServiceRequest for ServiceRequestService {
                 Err(Status::internal(error_messages::UNKNOWN))
             }
 
-            Err(ClientErrorKind::RequestError { code, body }) => {
-                let mut map = MetadataMap::new();
-                map.insert("error", body.parse().unwrap());
-
-                Err(Status::with_metadata(
-                    RpcCode::Unknown,
-                    error_messages::UNKNOWN,
-                    map,
-                ))
-            }
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
     }
 
@@ -190,12 +162,7 @@ impl ServiceRequest for ServiceRequestService {
 
             Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
-            Err(ClientErrorKind::RequestError { code, body }) => {
-                // let mut map = MetadataMap::new();
-                // map.insert("error", body.parse().unwrap());
-
-                Err(Status::unknown(body))
-            }
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
     }
 
@@ -223,16 +190,7 @@ impl ServiceRequest for ServiceRequestService {
                 Err(Status::internal(error_messages::UNKNOWN))
             }
 
-            Err(ClientErrorKind::RequestError { code, body }) => {
-                let mut map = MetadataMap::new();
-                map.insert("error", body.parse().unwrap());
-
-                Err(Status::with_metadata(
-                    RpcCode::Unknown,
-                    error_messages::UNKNOWN,
-                    map,
-                ))
-            }
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
     }
 

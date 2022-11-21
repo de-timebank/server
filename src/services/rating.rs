@@ -40,16 +40,7 @@ impl Rating for RatingService {
                         Err(Status::internal(error_messages::UNKNOWN))
                     }
 
-                    Err(ClientErrorKind::RequestError { body, .. }) => {
-                        let mut map = MetadataMap::new();
-                        map.insert("error", body.parse().unwrap());
-
-                        Err(Status::with_metadata(
-                            RpcCode::Unknown,
-                            error_messages::UNKNOWN,
-                            map,
-                        ))
-                    }
+                    Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
                 }
             }
 
@@ -76,16 +67,7 @@ impl Rating for RatingService {
                         Err(Status::internal(error_messages::UNKNOWN))
                     }
 
-                    Err(ClientErrorKind::RequestError { body, .. }) => {
-                        let mut map = MetadataMap::new();
-                        map.insert("error", body.parse().unwrap());
-
-                        Err(Status::with_metadata(
-                            RpcCode::Unknown,
-                            error_messages::UNKNOWN,
-                            map,
-                        ))
-                    }
+                    Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
                 }
             }
 
@@ -101,20 +83,9 @@ impl Rating for RatingService {
         match res {
             Ok(values) => Ok(Response::new(get::Response { ratings: values })),
 
-            Err(ClientErrorKind::InternalError(_)) => {
-                Err(Status::internal(error_messages::UNKNOWN))
-            }
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
-            Err(ClientErrorKind::RequestError { body, .. }) => {
-                let mut map = MetadataMap::new();
-                map.insert("error", body.parse().unwrap());
-
-                Err(Status::with_metadata(
-                    RpcCode::Unknown,
-                    error_messages::UNKNOWN,
-                    map,
-                ))
-            }
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
     }
 
@@ -133,16 +104,7 @@ impl Rating for RatingService {
                 Err(Status::internal(error_messages::UNKNOWN))
             }
 
-            Err(ClientErrorKind::RequestError { body, .. }) => {
-                let mut map = MetadataMap::new();
-                map.insert("error", body.parse().unwrap());
-
-                Err(Status::with_metadata(
-                    RpcCode::Unknown,
-                    error_messages::UNKNOWN,
-                    map,
-                ))
-            }
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
     }
 
@@ -163,16 +125,7 @@ impl Rating for RatingService {
                 Err(Status::internal(error_messages::UNKNOWN))
             }
 
-            Err(ClientErrorKind::RequestError { body, .. }) => {
-                let mut map = MetadataMap::new();
-                map.insert("error", body.parse().unwrap());
-
-                Err(Status::with_metadata(
-                    RpcCode::Unknown,
-                    error_messages::UNKNOWN,
-                    map,
-                ))
-            }
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
     }
 }
