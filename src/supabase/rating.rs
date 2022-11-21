@@ -108,7 +108,7 @@ impl RatingClient {
         }
     }
 
-    pub async fn update<T, U>(&self, id: T, body: U) -> Result<RatingData, ClientErrorKind>
+    pub async fn update<T, U>(&self, id: T, body: U) -> Result<Vec<RatingData>, ClientErrorKind>
     where
         T: AsRef<str>,
         U: Into<String>,
@@ -128,7 +128,7 @@ impl RatingClient {
                 ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
-            Ok(values.into_iter().next().unwrap_or_default())
+            Ok(values)
         } else {
             let err = res.json::<SupabaseError>().await.map_err(|e| {
                 ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))

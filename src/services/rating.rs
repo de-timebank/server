@@ -109,8 +109,8 @@ impl Rating for RatingService {
         let res = self.client.update(rating_id, body).await;
 
         match res {
-            Ok(value) => Ok(Response::new(update::Response {
-                rating: Some(value),
+            Ok(values) => Ok(Response::new(update::Response {
+                rating: values.into_iter().next(),
             })),
 
             Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
