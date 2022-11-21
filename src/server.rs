@@ -1,34 +1,46 @@
-pub mod proto;
-pub mod services;
+// TODO:
+// 1. create auth middleware that checks for valid jwt
+//    - how it'd work is by retrieving jwt attached in request metadata,
+//      and get the user associated with the token. the append the user id
+//      in the request metadata.
+//
+
+mod proto;
+mod services;
+mod starknet;
+mod supabase;
 
 use dotenv::dotenv;
-use tonic::{transport::Server, Request, Status};
+use proto::timebank::user::user_server::UserServer;
+use services::{
+    auth::{AuthServer, AuthService},
+    rating::{RatingServer, RatingService},
+    service_request::{ServiceRequestServer, ServiceRequestService},
+    user::UserService,
+};
+use tonic::transport::Server;
 
-use proto::auth::auth_server::AuthServer;
-use proto::service_request::service_request_server::ServiceRequestServer;
-use services::auth::AuthService;
-use services::service_request::ServiceRequestService;
-
-fn interceptor(req: Request<()>) -> Result<Request<()>, Status> {
-    println!("middleware {:?}", req.metadata());
-    Ok(req)
-}
+// async fn interceptor(req: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
+//     match req.metadata().get("access_token") {
+//         Some(_) => Ok(req),
+//         None => Err(tonic::Status::unauthenticated("MISSING ACCESS_TOKEN")),
+//     }
+// }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
-    let addr = "[::1]:50051".parse()?;
-
-    let request_service = ServiceRequestService::new().unwrap();
-    let auth_service = AuthService::default();
+    let addr = dotenv::var("SOCKET_ADDRESS")
+        .expect("MISSING SOCKET ADDRESS")
+        .parse()
+        .expect("UNABLE TO PARSE SOKCET ADDRESS STRING");
 
     Server::builder()
-        .add_service(ServiceRequestServer::with_interceptor(
-            request_service,
-            interceptor,
-        ))
-        .add_service(AuthServer::new(auth_service))
+        .add_service(ServiceRequestServer::new(ServiceRequestService::new()))
+        .add_service(RatingServer::new(RatingService::new()))
+        .add_service(UserServer::new(UserService::new()))
+        .add_service(AuthServer::new(AuthService::new()))
         .serve(addr)
         .await?;
 

@@ -1,112 +1,62 @@
-///
-/// Service for handling auth related operations eg login, regi&ster
-///
-// TODO:
-// (1) Handle KYC during registration process
-//
-use serde_json::json;
 use tonic::{Request, Response, Status};
 
 use crate::proto::auth::auth_server::Auth;
-use crate::proto::auth::{login, register};
-use crate::services::error_messages;
-use reqwest::{self, StatusCode};
+pub use crate::proto::auth::auth_server::AuthServer;
+use crate::proto::auth::sign_up;
+use crate::services::Result;
+use crate::supabase::ClientErrorKind;
+use crate::supabase::{auth::AuthClient, user::UserClient};
 
-use crate::services::util::HTTP;
+pub struct AuthService {
+    client: AuthClient,
+}
 
-#[derive(Default)]
-pub struct AuthService {}
+impl AuthService {
+    pub fn new() -> Self {
+        Self {
+            client: AuthClient::new(),
+        }
+    }
+}
 
 #[tonic::async_trait]
 impl Auth for AuthService {
-    async fn login(
+    async fn sign_up(
         &self,
-        request: Request<login::Request>,
-    ) -> Result<Response<login::Response>, Status> {
-        let payload = request.into_inner().payload;
+        request: Request<sign_up::Request>,
+    ) -> Result<Response<sign_up::Response>> {
+        let sign_up::Request {
+            email,
+            password,
+            profile,
+        } = request.into_inner();
 
-        if let Some(payload) = payload {
-            if payload.email.is_empty() || payload.password.is_empty() {
-                return Err(Status::new(
-                    tonic::Code::InvalidArgument,
-                    "Invalid Arguments",
-                ));
+        match (!email.is_empty(), !password.is_empty(), profile) {
+            (true, true, Some(profile)) => {
+                // 1. create new user
+                let user = self
+                    .client
+                    .sign_up(email, password)
+                    .await
+                    .map_err(|e| Status::unknown(e.to_string()))?;
+
+                // 2. create user profile
+                let res = UserClient::new()
+                    .create_new_profile(&user.id, profile)
+                    .await;
+
+                match res {
+                    Ok(_) => Ok(Response::new(sign_up::Response { user_id: user.id })),
+
+                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+
+                    Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+                }
             }
 
-            let res = HTTP::post(
-                "https://quepskrrpovzwydvfezs.supabase.co/auth/v1/token?grant_type=password",
-            )
-            .json(&payload)
-            .send()
-            .await
-            .unwrap();
-
-            let res_status = res.status();
-            let res_data = res.json::<serde_json::Value>().await.unwrap();
-
-            match res_status {
-                StatusCode::OK => Ok(Response::new(login::Response {
-                    auth_token: res_data["access_token"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .to_string(),
-                    user_id: res_data["user"]["id"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .to_string(),
-                })),
-
-                StatusCode::BAD_REQUEST => Err(Status::new(
-                    tonic::Code::InvalidArgument,
-                    res_data["error_description"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .to_uppercase(),
-                )),
-
-                _ => Err(Status::new(tonic::Code::Unknown, error_messages::UNKNOWN)),
-            }
-        } else {
-            Err(Status::new(
-                tonic::Code::InvalidArgument,
-                error_messages::INVALID_PAYLOAD,
-            ))
-        }
-    }
-
-    async fn register(
-        &self,
-        request: Request<register::Request>,
-    ) -> Result<Response<register::Response>, Status> {
-        let payload = request.into_inner().payload;
-
-        if let Some(payload) = payload {
-            let res = HTTP::post("https://quepskrrpovzwydvfezs.supabase.co/auth/v1/signup")
-                .json(&json!({ "email": payload.email, "password": payload.password }))
-                .send()
-                .await
-                .unwrap();
-
-            match res.status() {
-                StatusCode::OK => Ok(Response::new(register::Response {})),
-
-                StatusCode::UNPROCESSABLE_ENTITY => Err(Status::new(
-                    tonic::Code::ResourceExhausted,
-                    error_messages::INVALID_PAYLOAD,
-                )),
-
-                StatusCode::TOO_MANY_REQUESTS => Err(Status::new(
-                    tonic::Code::ResourceExhausted,
-                    error_messages::TOO_MANY_REQUESTS,
-                )),
-
-                _ => Err(Status::new(tonic::Code::Unknown, error_messages::UNKNOWN)),
-            }
-        } else {
-            Err(Status::new(
-                tonic::Code::InvalidArgument,
-                error_messages::INVALID_PAYLOAD,
-            ))
+            (false, _, _) => Err(Status::invalid_argument("email cannot be empty!")),
+            (_, false, _) => Err(Status::invalid_argument("password cannot be empty!")),
+            (_, _, None) => Err(Status::invalid_argument("profile cannot be e mpty!")),
         }
     }
 }

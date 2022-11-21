@@ -5,8 +5,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build_server(true)
         .build_client(true)
         .type_attribute(".", SERIAL_DESERIAL_ATTR)
+        .include_file("proto.rs")
         .compile(
-            &["proto/service-request.proto", "proto/auth.proto"],
+            &[
+                "proto/auth.proto",
+                "proto/user.proto",
+                "proto/collection/rating.proto",
+                "proto/collection/service-request.proto",
+            ],
             &["proto"],
         )?;
 
