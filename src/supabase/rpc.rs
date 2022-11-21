@@ -7,33 +7,33 @@ pub trait RpcMethod {
 
 #[derive(AsRefStr, Debug)]
 pub enum ServiceRequestRpc {
-    #[strum(serialize = "servicerequest_create")]
+    #[strum(serialize = "servicerequests_create")]
     Create,
-    #[strum(serialize = "servicerequest_delete")]
+    #[strum(serialize = "servicerequests_delete")]
     Delete,
-    #[strum(serialize = "servicerequest_applyprovider")]
+    #[strum(serialize = "servicerequests_applyasprovider")]
     ApplyProvider,
-    #[strum(serialize = "servicerequest_selectprovider")]
+    #[strum(serialize = "servicerequests_selectprovider")]
     SelectProvider,
-    #[strum(serialize = "servicerequest_completeservice")]
+    #[strum(serialize = "servicerequests_completeservice")]
     CompleteService,
 }
 
 #[derive(AsRefStr, Debug)]
 pub enum RatingRpc {
-    #[strum(serialize = "rating_createforprovider")]
+    #[strum(serialize = "ratings_createforprovider")]
     CreateForProvider,
-    #[strum(serialize = "rating_createforrequestor")]
+    #[strum(serialize = "ratings_createforrequestor")]
     CreateForRequestor,
-    #[strum(serialize = "rating_delete")]
+    #[strum(serialize = "ratings_delete")]
     Delete,
 }
 
 #[allow(unused)]
 #[derive(AsRefStr, Debug)]
 pub enum UserRpc {
-    #[strum(serialize = "user_getrating")]
-    GetRating,
+    #[strum(serialize = "users_getbyid")]
+    GetById,
 }
 
 macro_rules! rpc_method {

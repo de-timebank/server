@@ -99,6 +99,6 @@ impl UserClient {
     }
 
     fn table(&self) -> Builder {
-        self.client.from("user_profile")
+        self.client.from("profiles")
     }
 }

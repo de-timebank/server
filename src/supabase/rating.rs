@@ -164,6 +164,6 @@ impl RatingClient {
     }
 
     fn table(&self) -> Builder {
-        self.client.postgrest_client.from("rating")
+        self.client.postgrest_client.from("ratings")
     }
 }
