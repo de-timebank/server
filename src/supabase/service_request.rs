@@ -195,6 +195,6 @@ impl ServiceRequestClient {
     }
 
     fn table(&self) -> Builder {
-        self.client.from("service-requests")
+        self.client.from("service_requests")
     }
 }
