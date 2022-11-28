@@ -7,7 +7,7 @@ pub mod user;
 use core::fmt;
 use postgrest::{Builder, Postgrest};
 use reqwest::Response;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub enum InternalErrorKind {
@@ -50,7 +50,7 @@ impl std::error::Error for ClientErrorKind {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SupabaseError {
     pub code: String,
     pub details: Option<String>,
@@ -60,11 +60,7 @@ pub struct SupabaseError {
 
 impl fmt::Display for SupabaseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "supabase error : {}",
-            self.message.as_ref().unwrap_or(&String::from("unknown"))
-        )
+        write!(f, "{}", serde_json::to_string(self).unwrap_or_default())
     }
 }
 
