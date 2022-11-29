@@ -111,12 +111,10 @@ impl ServiceRequest for ServiceRequestService {
     ) -> Result<Response<get_by_id::Response>> {
         let get_by_id::Request { request_id } = request.into_inner();
 
-        let res = self.client.get("id", request_id).await;
+        let res = self.client.get_by_id(request_id).await;
 
         match res {
-            Ok(values) => Ok(Response::new(get_by_id::Response {
-                request: values.into_iter().next(),
-            })),
+            Ok(value) => Ok(Response::new(value)),
 
             Err(e) => Err(Status::unknown(e.to_string())),
         }
