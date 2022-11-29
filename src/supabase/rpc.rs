@@ -38,6 +38,8 @@ pub enum UserRpc {
     GetById,
     #[strum(serialize = "users_createnewprofile")]
     HandleNewUser,
+    #[strum(serialize = "users_checkifemailexist")]
+    CheckIfEmailExist,
 }
 
 macro_rules! rpc_method {

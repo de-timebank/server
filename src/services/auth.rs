@@ -33,6 +33,24 @@ impl Auth for AuthService {
 
         match (!email.is_empty(), !password.is_empty(), profile) {
             (true, true, Some(profile)) => {
+                let user_client = UserClient::new();
+
+                {
+                    let res = user_client.check_if_email_exist(&email).await;
+
+                    match res {
+                        Ok(value) if value == true => {
+                            return Err(Status::already_exists(
+                                "user with that email already exist",
+                            ))
+                        }
+
+                        Err(e) => return Err(Status::internal(e.to_string())),
+
+                        _ => {}
+                    }
+                };
+
                 // 1. create new user
                 let user = self
                     .client
@@ -41,9 +59,7 @@ impl Auth for AuthService {
                     .map_err(|e| Status::unknown(e.to_string()))?;
 
                 // 2. create user profile
-                let res = UserClient::new()
-                    .create_new_profile(&user.id, profile)
-                    .await;
+                let res = user_client.create_new_profile(&user.id, profile).await;
 
                 match res {
                     Ok(_) => Ok(Response::new(sign_up::Response { user_id: user.id })),
@@ -56,7 +72,7 @@ impl Auth for AuthService {
 
             (false, _, _) => Err(Status::invalid_argument("email cannot be empty!")),
             (_, false, _) => Err(Status::invalid_argument("password cannot be empty!")),
-            (_, _, None) => Err(Status::invalid_argument("profile cannot be e mpty!")),
+            (_, _, None) => Err(Status::invalid_argument("profile cannot be empty!")),
         }
     }
 }

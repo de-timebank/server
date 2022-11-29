@@ -93,11 +93,28 @@ impl UserClient {
             )
             .await?;
 
-        println!("here3");
-
         res.json::<Vec<UserProfile>>().await.map_err(|e| {
             ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
         })
+    }
+
+    pub async fn check_if_email_exist<T>(&self, id: T) -> Result<bool, ClientErrorKind>
+    where
+        T: Serialize,
+    {
+        let res = self
+            .client
+            .rpc(
+                UserRpc::CheckIfEmailExist,
+                json!({ "_email": id }).to_string(),
+            )
+            .await?;
+
+        let value = res.json::<bool>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })?;
+
+        Ok(value)
     }
 
     fn table(&self) -> Builder {
