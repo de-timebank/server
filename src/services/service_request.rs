@@ -3,8 +3,7 @@ use tonic::{Request, Response, Status};
 use crate::{
     proto::timebank::servicerequest::{
         apply_provider, complete_service, create, delete, get, get_available, get_by_id,
-        get_commitment, select_provider, service_request_server::ServiceRequest, start_service,
-        update,
+        select_provider, service_request_server::ServiceRequest, start_service, update,
     },
     services::{error_messages, Result},
     supabase::{service_request::ServiceRequestClient, ClientErrorKind},
@@ -216,14 +215,6 @@ impl ServiceRequest for ServiceRequestService {
             return Err(Status::invalid_argument("missing filter data"))
         };
 
-        todo!()
-    }
-
-    #[allow(unused)]
-    async fn get_commitment(
-        &self,
-        request: Request<get_commitment::Request>,
-    ) -> Result<Response<get_commitment::Response>> {
         todo!()
     }
 }

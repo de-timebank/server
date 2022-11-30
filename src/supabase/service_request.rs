@@ -261,14 +261,6 @@ impl ServiceRequestClient {
         Ok(values)
     }
 
-    #[allow(unused)]
-    pub async fn get_commitment_of<T>(&self, id: T)
-    where
-        T: AsRef<str>,
-    {
-        todo!()
-    }
-
     fn table(&self) -> Builder {
         self.client.from("service_requests")
     }
