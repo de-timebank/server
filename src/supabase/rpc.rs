@@ -15,6 +15,8 @@ pub enum ServiceRequestRpc {
     ApplyProvider,
     #[strum(serialize = "servicerequests_selectprovider")]
     SelectProvider,
+    #[strum(serialize = "servicerequests_startservice")]
+    StartService,
     #[strum(serialize = "servicerequests_completeservice")]
     CompleteService,
     #[strum(serialize = "servicerequests_getbyid")]
