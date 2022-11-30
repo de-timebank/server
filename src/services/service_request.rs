@@ -187,17 +187,22 @@ impl ServiceRequest for ServiceRequestService {
         }
     }
 
-    #[allow(unused)]
     async fn start_service(
         &self,
         request: Request<start_service::Request>,
     ) -> Result<Response<start_service::Response>> {
         let start_service::Request {
-            request_id,
             user_id,
+            request_id,
         } = request.into_inner();
 
-        todo!()
+        let res = self.client.start_service(&request_id, &user_id).await;
+
+        match res {
+            Ok(()) => Ok(Response::new(start_service::Response {})),
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+        }
     }
 
     #[allow(unused)]
