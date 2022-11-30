@@ -190,6 +190,28 @@ impl ServiceRequestClient {
         Ok(())
     }
 
+    pub async fn start_service<T, U>(
+        &self,
+        request_id: T,
+        user_id: U,
+    ) -> Result<(), ClientErrorKind>
+    where
+        T: Serialize,
+        U: Serialize,
+    {
+        self.client
+            .rpc(
+                ServiceRequestRpc::StartService,
+                json!({
+                    "_request_id": request_id,
+                    "_user_id": user_id
+                })
+                .to_string(),
+            )
+            .await?;
+        Ok(())
+    }
+
     pub async fn complete_service<T, U>(&self, id: T, requestor: U) -> Result<(), ClientErrorKind>
     where
         T: Serialize,
@@ -206,6 +228,37 @@ impl ServiceRequestClient {
             )
             .await?;
         Ok(())
+    }
+
+    /// Fetch all service requests that is in the pending state.
+    pub async fn get_available<T, U>(
+        &self,
+        filter_by: T,
+        filter_value: U,
+        offset: usize,
+        limit: usize,
+    ) -> Result<Vec<ServiceRequestData>, ClientErrorKind>
+    where
+        T: AsRef<str>,
+        U: AsRef<str>,
+    {
+        let res = self
+            .table()
+            .select("*")
+            .eq("state", "0")
+            .eq(filter_by, filter_value)
+            .range(offset, offset + limit)
+            .execute()
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
+
+        let values = res.json::<Vec<ServiceRequestData>>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })?;
+
+        Ok(values)
     }
 
     #[allow(unused)]

@@ -2,8 +2,9 @@ use tonic::{Request, Response, Status};
 
 use crate::{
     proto::timebank::servicerequest::{
-        apply_provider, complete_service, create, delete, get, get_by_id, get_commitment,
-        select_provider, service_request_server::ServiceRequest, update,
+        apply_provider, complete_service, create, delete, get, get_available, get_by_id,
+        get_commitment, select_provider, service_request_server::ServiceRequest, start_service,
+        update,
     },
     services::{error_messages, Result},
     supabase::{service_request::ServiceRequestClient, ClientErrorKind},
@@ -184,6 +185,33 @@ impl ServiceRequest for ServiceRequestService {
 
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
         }
+    }
+
+    #[allow(unused)]
+    async fn start_service(
+        &self,
+        request: Request<start_service::Request>,
+    ) -> Result<Response<start_service::Response>> {
+        let start_service::Request {
+            request_id,
+            user_id,
+        } = request.into_inner();
+
+        todo!()
+    }
+
+    #[allow(unused)]
+    async fn get_available(
+        &self,
+        request: Request<get_available::Request>,
+    ) -> Result<Response<get_available::Response>> {
+        let get_available::Request { filter } = request.into_inner();
+
+        let Some(filter) = filter else {
+            return Err(Status::invalid_argument("missing filter data"))
+        };
+
+        todo!()
     }
 
     #[allow(unused)]
