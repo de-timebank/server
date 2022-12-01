@@ -73,7 +73,7 @@ impl UserClient {
         profile: NewUserProfile,
     ) -> Result<Vec<UserProfile>, ClientErrorKind>
     where
-        T: AsRef<str> + Serialize,
+        T: Serialize,
     {
         let res = self
             .client
@@ -81,13 +81,7 @@ impl UserClient {
                 UserRpc::HandleNewUser,
                 json!({
                     "_user_id": user_id,
-                    "_profile": {
-                        "name": profile.name,
-                        "gender": profile.gender,
-                        "skills": profile.skills,
-                        "contacts": profile.contacts,
-                        "matric_number": profile.matric_number,
-                    }
+                    "_profile": profile
                 })
                 .to_string(),
             )
