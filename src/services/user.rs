@@ -2,7 +2,7 @@ use tonic::{Request, Response, Status};
 
 pub use crate::proto::timebank::user::user_server::UserServer;
 use crate::proto::timebank::user::{
-    get, get_by_id, get_credit_balance, get_rating, update, user_server::User,
+    get, get_by_id, get_credit_balance, get_profile, get_rating, update, user_server::User,
 };
 use crate::services::Result;
 use crate::supabase::user::UserClient;
@@ -69,6 +69,25 @@ impl User for UserService {
             Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+        }
+    }
+
+    async fn get_profile(
+        &self,
+        request: Request<get_profile::Request>,
+    ) -> Result<Response<get_profile::Response>> {
+        let get_profile::Request { user_id } = request.into_inner();
+
+        if user_id.is_empty() {
+            return Err(Status::invalid_argument("user id cannot be empty"));
+        }
+
+        let res = self.client.get_profile(&user_id).await;
+
+        match res {
+            Ok(value) => Ok(Response::new(get_profile::Response { user: Some(value) })),
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 

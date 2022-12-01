@@ -33,11 +33,10 @@ pub enum RatingRpc {
     Delete,
 }
 
-#[allow(unused)]
 #[derive(AsRefStr, Debug)]
 pub enum UserRpc {
-    #[strum(serialize = "users_getbyid")]
-    GetById,
+    #[strum(serialize = "users_getprofile")]
+    GetProfile,
     #[strum(serialize = "users_createnewprofile")]
     HandleNewUser,
     #[strum(serialize = "users_checkifemailexist")]

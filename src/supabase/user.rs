@@ -1,5 +1,5 @@
 use super::{rpc::UserRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError};
-use crate::proto::timebank::user::{NewUserProfile, UserProfile};
+use crate::proto::timebank::user::{NewUserProfile, ProfileSummary, UserProfile};
 
 use postgrest::Builder;
 use serde::Serialize;
@@ -65,6 +65,20 @@ impl UserClient {
 
             Err(ClientErrorKind::SupabaseError(err))
         }
+    }
+
+    pub async fn get_profile(&self, user_id: &str) -> Result<ProfileSummary, ClientErrorKind> {
+        let res = self
+            .client
+            .rpc(
+                UserRpc::GetProfile,
+                json!({ "_user_id": user_id }).to_string(),
+            )
+            .await?;
+
+        res.json::<ProfileSummary>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })
     }
 
     pub(crate) async fn create_new_profile<T>(
