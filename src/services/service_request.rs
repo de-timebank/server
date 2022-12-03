@@ -204,17 +204,34 @@ impl ServiceRequest for ServiceRequestService {
         }
     }
 
-    #[allow(unused)]
     async fn get_available(
         &self,
         request: Request<get_available::Request>,
     ) -> Result<Response<get_available::Response>> {
-        let get_available::Request { filter } = request.into_inner();
+        let get_available::Request { filter, page } = request.into_inner();
 
         let Some(filter) = filter else {
             return Err(Status::invalid_argument("missing filter data"))
         };
 
-        todo!()
+        let Some(page) = page else {
+            return Err(Status::invalid_argument("missing page data"))
+        };
+
+        let res = self
+            .client
+            .get_available(
+                &filter.by,
+                &filter.value,
+                page.offset as usize,
+                page.limit as usize,
+            )
+            .await;
+
+        match res {
+            Ok(requests) => Ok(Response::new(get_available::Response { requests })),
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+        }
     }
 }
