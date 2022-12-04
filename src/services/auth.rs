@@ -39,14 +39,13 @@ impl Auth for AuthService {
                     let res = user_client.check_if_email_exist(&email).await;
 
                     match res {
-                        Ok(value) if value == true => {
+                        Ok(value) if value => {
                             return Err(Status::already_exists(
-                                "user with that email already exist",
+                                "user with that email already exists",
                             ))
                         }
 
                         Err(e) => return Err(Status::internal(e.to_string())),
-
                         _ => {}
                     }
                 };

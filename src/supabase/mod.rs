@@ -73,14 +73,13 @@ pub(self) struct SupabaseClient {
 
 impl SupabaseClient {
     fn new() -> Self {
+        let uri = dotenv::var("SUPABASE_ENDPOINT").expect("MISSING SUPABASE POSTGREST ENDPOINT!");
+        let apikey = dotenv::var("SUPABASE_API_KEY").expect("MISSING SUPABASE API KEY!");
+
         Self {
-            postgrest_client: Postgrest::new(
-                dotenv::var("SUPABASE_ENDPOINT").expect("MISSING SUPABASE POSTGREST ENDPOINT!"),
-            )
-            .insert_header(
-                "apikey",
-                dotenv::var("SUPABASE_API_KEY").expect("MISSING SUPABASE API KEY!"),
-            ),
+            postgrest_client: Postgrest::new(uri)
+                .insert_header("apikey", &apikey)
+                .insert_header("Authorization", format!("Bearer {apikey}")),
         }
     }
 

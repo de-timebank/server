@@ -29,6 +29,7 @@ pub enum RatingRpc {
     CreateForProvider,
     #[strum(serialize = "ratings_createforrequestor")]
     CreateForRequestor,
+    #[allow(unused)]
     #[strum(serialize = "ratings_delete")]
     Delete,
 }
