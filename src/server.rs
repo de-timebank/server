@@ -4,13 +4,14 @@
 //      and get the user associated with the token. the append the user id
 //      in the request metadata.
 //
-
+mod middleware;
 mod proto;
 mod services;
 mod starknet;
 mod supabase;
 
 use dotenv::dotenv;
+use middleware::RequestLoggerLayer;
 use proto::timebank::user::user_server::UserServer;
 use services::{
     auth::{AuthServer, AuthService},
@@ -19,24 +20,35 @@ use services::{
     user::UserService,
 };
 use tonic::transport::Server;
+use tracing::info;
+use tracing_subscriber::{fmt::time::LocalTime, EnvFilter};
 
-// async fn interceptor(req: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
-//     match req.metadata().get("access_token") {
-//         Some(_) => Ok(req),
-//         None => Err(tonic::Status::unauthenticated("MISSING ACCESS_TOKEN")),
-//     }
-// }
+fn setup() {
+    dotenv().ok();
+
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info")
+    }
+
+    tracing_subscriber::fmt::fmt()
+        .with_timer(LocalTime::rfc_3339())
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv().ok();
+    setup();
 
     let addr = dotenv::var("SOCKET_ADDRESS")
         .expect("MISSING SOCKET ADDRESS")
         .parse()
         .expect("UNABLE TO PARSE SOKCET ADDRESS STRING");
 
+    info!("Listening on {}", addr);
+
     Server::builder()
+        .layer(RequestLoggerLayer::default())
         .add_service(ServiceRequestServer::new(ServiceRequestService::new()))
         .add_service(RatingServer::new(RatingService::new()))
         .add_service(UserServer::new(UserService::new()))

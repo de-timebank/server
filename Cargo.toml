@@ -30,7 +30,12 @@ starknet = { git = "https://github.com/xJonathanLEI/starknet-rs" }
 eyre = "0.6.8"
 strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24"
+graphql_client = "0.11.0"
+hyper = "0.14.23"
+futures = "0.3.25"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter", "time", "local-time"] }
+tracing = "0.1.37"
+time = { version = "0.3.17", features = ["local-offset"] }
 
 [build-dependencies] 
 tonic-build = "0.7.2"
-
