@@ -1,5 +1,5 @@
 use super::{rpc::UserRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError};
-use crate::proto::timebank::user::{NewUserProfile, ProfileSummary, UserProfile};
+use crate::proto::user::{NewUserProfile, ProfileSummary, UserProfile};
 
 use postgrest::Builder;
 use serde::Serialize;

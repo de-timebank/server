@@ -1,5 +1,5 @@
 use super::{rpc::RatingRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError};
-use crate::proto::timebank::rating::{create::NewRatingData, RatingData};
+use crate::proto::rating::{create::NewRatingData, RatingData};
 
 use postgrest::Builder;
 use serde_json::json;

@@ -1,9 +1,7 @@
 use super::{
     rpc::ServiceRequestRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError,
 };
-use crate::proto::timebank::servicerequest::{
-    create, get_by_id, get_summary_for_user, ServiceRequestData,
-};
+use crate::proto::servicerequest::{create, get_by_id, get_summary_for_user, ServiceRequestData};
 
 use postgrest::Builder;
 use serde::Serialize;

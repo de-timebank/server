@@ -12,12 +12,11 @@ mod supabase;
 
 use dotenv::dotenv;
 use middleware::RequestLoggerLayer;
-use proto::timebank::user::user_server::UserServer;
 use services::{
     auth::{AuthServer, AuthService},
     rating::{RatingServer, RatingService},
     service_request::{ServiceRequestServer, ServiceRequestService},
-    user::UserService,
+    user::{UserServer, UserService},
 };
 use tonic::transport::Server;
 use tracing::info;

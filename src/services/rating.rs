@@ -1,6 +1,6 @@
-pub use crate::proto::timebank::rating::rating_server::RatingServer;
+pub use crate::proto::rating::rating_server::RatingServer;
 
-use crate::proto::timebank::rating::{create, delete, get, rating_server::Rating, update};
+use crate::proto::rating::{create, delete, get, rating_server::Rating, update};
 use crate::services::{error_messages, Result};
 use crate::supabase::{rating::RatingClient, ClientErrorKind};
 

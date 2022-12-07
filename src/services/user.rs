@@ -1,7 +1,7 @@
 use tonic::{Request, Response, Status};
 
-pub use crate::proto::timebank::user::user_server::UserServer;
-use crate::proto::timebank::user::{
+pub use crate::proto::user::user_server::UserServer;
+use crate::proto::user::{
     get, get_by_id, get_credit_balance, get_profile, get_rating, update, user_server::User,
 };
 use crate::services::Result;

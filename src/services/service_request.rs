@@ -1,7 +1,7 @@
 use tonic::{Request, Response, Status};
 
 use crate::{
-    proto::timebank::servicerequest::{
+    proto::servicerequest::{
         apply_provider, complete_service, create, delete, get, get_available, get_by_id,
         get_summary_for_user, select_provider, service_request_server::ServiceRequest,
         start_service, update,
@@ -10,7 +10,7 @@ use crate::{
     supabase::{service_request::ServiceRequestClient, ClientErrorKind},
 };
 
-pub use crate::proto::timebank::servicerequest::service_request_server::ServiceRequestServer;
+pub use crate::proto::servicerequest::service_request_server::ServiceRequestServer;
 
 pub struct ServiceRequestService {
     client: ServiceRequestClient,
