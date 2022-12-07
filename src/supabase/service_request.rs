@@ -1,7 +1,9 @@
 use super::{
     rpc::ServiceRequestRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError,
 };
-use crate::proto::timebank::servicerequest::{create, get_by_id, ServiceRequestData};
+use crate::proto::timebank::servicerequest::{
+    create, get_by_id, get_summary_for_user, ServiceRequestData,
+};
 
 use postgrest::Builder;
 use serde::Serialize;
@@ -263,5 +265,25 @@ impl ServiceRequestClient {
 
     fn table(&self) -> Builder {
         self.client.from("service_requests")
+    }
+
+    pub async fn get_summary_for_user<T: Serialize>(
+        &self,
+        user_id: T,
+    ) -> Result<get_summary_for_user::Response, ClientErrorKind> {
+        let res = self
+            .client
+            .rpc(
+                ServiceRequestRpc::GetSummaryForUser,
+                json!({ "_user_id": user_id }).to_string(),
+            )
+            .await?
+            .json::<get_summary_for_user::Response>()
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+        Ok(res)
     }
 }

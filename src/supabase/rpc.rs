@@ -21,6 +21,8 @@ pub enum ServiceRequestRpc {
     CompleteService,
     #[strum(serialize = "servicerequests_getbyid")]
     GetById,
+    #[strum(serialize = "servicerequests_getsummaryforuser")]
+    GetSummaryForUser,
 }
 
 #[derive(AsRefStr, Debug)]

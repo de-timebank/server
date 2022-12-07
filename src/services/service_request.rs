@@ -3,7 +3,8 @@ use tonic::{Request, Response, Status};
 use crate::{
     proto::timebank::servicerequest::{
         apply_provider, complete_service, create, delete, get, get_available, get_by_id,
-        select_provider, service_request_server::ServiceRequest, start_service, update,
+        get_summary_for_user, select_provider, service_request_server::ServiceRequest,
+        start_service, update,
     },
     services::{error_messages, Result},
     supabase::{service_request::ServiceRequestClient, ClientErrorKind},
@@ -230,6 +231,21 @@ impl ServiceRequest for ServiceRequestService {
 
         match res {
             Ok(requests) => Ok(Response::new(get_available::Response { requests })),
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn get_summary_for_user(
+        &self,
+        request: Request<get_summary_for_user::Request>,
+    ) -> Result<Response<get_summary_for_user::Response>> {
+        let get_summary_for_user::Request { user_id } = request.into_inner();
+
+        let res = self.client.get_summary_for_user(&user_id).await;
+
+        match res {
+            Ok(value) => Ok(Response::new(value)),
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
             Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
