@@ -92,16 +92,17 @@ impl Rating for RatingService {
         &self,
         request: Request<delete::Request>,
     ) -> Result<Response<delete::Response>> {
-        let delete::Request { rating_id } = request.into_inner();
+        let delete::Request {
+            request_id,
+            rating_for,
+        } = request.into_inner();
 
-        let res = self.client.delete(rating_id).await;
+        let res = self.client.delete(request_id, rating_for).await;
 
         match res {
             Ok(_) => Ok(Response::new(delete::Response {})),
-
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
-
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -109,18 +110,20 @@ impl Rating for RatingService {
         &self,
         request: Request<update::Request>,
     ) -> Result<Response<update::Response>> {
-        let update::Request { rating_id, body } = request.into_inner();
+        let update::Request {
+            request_id,
+            rating_for,
+            body,
+        } = request.into_inner();
 
-        let res = self.client.update(rating_id, body).await;
+        let res = self.client.update(request_id, rating_for, body).await;
 
         match res {
             Ok(values) => Ok(Response::new(update::Response {
                 rating: values.into_iter().next(),
             })),
-
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
-
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 

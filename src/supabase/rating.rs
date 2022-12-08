@@ -141,14 +141,21 @@ impl RatingClient {
         }
     }
 
-    pub async fn update<T, U>(&self, id: T, body: U) -> Result<Vec<RatingData>, ClientErrorKind>
+    pub async fn update<T, U, V>(
+        &self,
+        request_id: T,
+        rating_for: U,
+        body: V,
+    ) -> Result<Vec<RatingData>, ClientErrorKind>
     where
         T: AsRef<str>,
-        U: Into<String>,
+        U: AsRef<str>,
+        V: Into<String>,
     {
         let res = self
             .table()
-            .eq("id", id)
+            .eq("request_id", request_id)
+            .eq("rating_for", rating_for)
             .update(body)
             .execute()
             .await
@@ -171,13 +178,15 @@ impl RatingClient {
         }
     }
 
-    pub async fn delete<T>(&self, id: T) -> Result<(), ClientErrorKind>
+    pub async fn delete<T, U>(&self, request_id: T, rating_for: U) -> Result<(), ClientErrorKind>
     where
         T: AsRef<str>,
+        U: AsRef<str>,
     {
         let res = self
             .table()
-            .eq("id", id)
+            .eq("request_id", request_id)
+            .eq("rating_for", rating_for)
             .delete()
             .execute()
             .await
@@ -185,14 +194,14 @@ impl RatingClient {
                 ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
             })?;
 
-        if res.status().is_success() {
-            Ok(())
-        } else {
+        if !res.status().is_success() {
             let err = res.json::<SupabaseError>().await.map_err(|e| {
                 ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
             Err(ClientErrorKind::SupabaseError(err))
+        } else {
+            Ok(())
         }
     }
 
