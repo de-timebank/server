@@ -1,3 +1,4 @@
+#![allow(unused)]
 use graphql_client::GraphQLQuery;
 
 // #[derive(GraphQLQuery)]
