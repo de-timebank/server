@@ -1,7 +1,7 @@
 pub use crate::proto::rating::rating_server::RatingServer;
 
 use crate::proto::rating::{
-    create, delete, get_by_id, get_for_request, rating_server::Rating, update,
+    create, delete, get, get_by_id, get_for_request, rating_server::Rating, update,
 };
 use crate::services::{error_messages, Result};
 use crate::supabase::{rating::RatingClient, ClientErrorKind};
@@ -142,6 +142,18 @@ impl Rating for RatingService {
             Ok(values) => Ok(Response::new(get_by_id::Response {
                 rating: values.into_iter().next(),
             })),
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn get(&self, request: Request<get::Request>) -> Result<Response<get::Response>> {
+        let get::Request { key, value } = request.into_inner();
+
+        let res = self.client.get(&key, &value).await;
+
+        match res {
+            Ok(ratings) => Ok(Response::new(get::Response { ratings })),
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
             Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
