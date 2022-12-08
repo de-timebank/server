@@ -61,7 +61,7 @@ impl AuthClient {
     {
         let apikey = dotenv::var("SUPABASE_API_KEY").expect("missing supabase apikey");
         let url = dotenv::var("SUPABASE_AUTH_ENDPOINT").expect("missing supabase auth endpoint");
-        let url = format!("{}/signup", url);
+        let url = format!("{url}/signup");
 
         let res = self
             .client

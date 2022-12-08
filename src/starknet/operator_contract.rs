@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use super::admin_account::AdminAccount;
-use crate::proto::timebank::servicerequest::ServiceCommitmentData;
 use starknet::{
     accounts::{single_owner::TransactionError, Call},
     core::{
@@ -91,13 +90,6 @@ impl OperatorContract {
             .await
             .unwrap();
         Ok(res)
-    }
-
-    pub async fn get_commitment_of(
-        &self,
-        request_id: &str,
-    ) -> Result<ServiceCommitmentData, SequencerGatewayProviderError> {
-        todo!()
     }
 }
 

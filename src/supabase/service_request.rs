@@ -1,7 +1,7 @@
 use super::{
     rpc::ServiceRequestRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError,
 };
-use crate::proto::timebank::servicerequest::{create, ServiceRequestData};
+use crate::proto::servicerequest::{create, get_by_id, get_summary_for_user, ServiceRequestData};
 
 use postgrest::Builder;
 use serde::Serialize;
@@ -76,6 +76,28 @@ impl ServiceRequestClient {
 
             Err(ClientErrorKind::SupabaseError(err))
         }
+    }
+
+    pub async fn get_by_id<T>(&self, request_id: T) -> Result<get_by_id::Response, ClientErrorKind>
+    where
+        T: Serialize,
+    {
+        let res = self
+            .client
+            .rpc(
+                ServiceRequestRpc::GetById,
+                json!({
+                    "_request_id": request_id,
+                })
+                .to_string(),
+            )
+            .await?;
+
+        let value = res.json::<get_by_id::Response>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })?;
+
+        Ok(value)
     }
 
     pub async fn update<T, U>(
@@ -168,6 +190,28 @@ impl ServiceRequestClient {
         Ok(())
     }
 
+    pub async fn start_service<T, U>(
+        &self,
+        request_id: T,
+        user_id: U,
+    ) -> Result<(), ClientErrorKind>
+    where
+        T: Serialize,
+        U: Serialize,
+    {
+        self.client
+            .rpc(
+                ServiceRequestRpc::StartService,
+                json!({
+                    "_request_id": request_id,
+                    "_user_id": user_id
+                })
+                .to_string(),
+            )
+            .await?;
+        Ok(())
+    }
+
     pub async fn complete_service<T, U>(&self, id: T, requestor: U) -> Result<(), ClientErrorKind>
     where
         T: Serialize,
@@ -186,15 +230,58 @@ impl ServiceRequestClient {
         Ok(())
     }
 
-    #[allow(unused)]
-    pub async fn get_commitment_of<T>(&self, id: T)
+    /// Fetch all service requests that is in the pending state.
+    pub async fn get_available<T, U>(
+        &self,
+        filter_by: T,
+        filter_value: U,
+        offset: usize,
+        limit: usize,
+    ) -> Result<Vec<ServiceRequestData>, ClientErrorKind>
     where
         T: AsRef<str>,
+        U: AsRef<str>,
     {
-        todo!()
+        let res = self
+            .table()
+            .select("*")
+            .eq("state", "0")
+            .eq(filter_by, filter_value)
+            .range(offset, offset + limit)
+            .execute()
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
+
+        let values = res.json::<Vec<ServiceRequestData>>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })?;
+
+        Ok(values)
     }
 
     fn table(&self) -> Builder {
         self.client.from("service_requests")
+    }
+
+    pub async fn get_summary_for_user<T: Serialize>(
+        &self,
+        user_id: T,
+    ) -> Result<get_summary_for_user::Response, ClientErrorKind> {
+        let res = self
+            .client
+            .rpc(
+                ServiceRequestRpc::GetSummaryForUser,
+                json!({ "_user_id": user_id }).to_string(),
+            )
+            .await?
+            .json::<get_summary_for_user::Response>()
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+        Ok(res)
     }
 }

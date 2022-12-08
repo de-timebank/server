@@ -1,5 +1,5 @@
 use super::{rpc::UserRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError};
-use crate::proto::timebank::user::{NewUserProfile, UserProfile};
+use crate::proto::user::{NewUserProfile, ProfileSummary, UserProfile};
 
 use postgrest::Builder;
 use serde::Serialize;
@@ -67,13 +67,27 @@ impl UserClient {
         }
     }
 
+    pub async fn get_profile(&self, user_id: &str) -> Result<ProfileSummary, ClientErrorKind> {
+        let res = self
+            .client
+            .rpc(
+                UserRpc::GetProfile,
+                json!({ "_user_id": user_id }).to_string(),
+            )
+            .await?;
+
+        res.json::<ProfileSummary>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })
+    }
+
     pub(crate) async fn create_new_profile<T>(
         &self,
         user_id: T,
         profile: NewUserProfile,
     ) -> Result<Vec<UserProfile>, ClientErrorKind>
     where
-        T: AsRef<str> + Serialize,
+        T: Serialize,
     {
         let res = self
             .client
@@ -81,23 +95,34 @@ impl UserClient {
                 UserRpc::HandleNewUser,
                 json!({
                     "_user_id": user_id,
-                    "_profile": {
-                        "name": profile.name,
-                        "gender": profile.gender,
-                        "skills": profile.skills,
-                        "contacts": profile.contacts,
-                        "matric_number": profile.matric_number,
-                    }
+                    "_profile": profile
                 })
                 .to_string(),
             )
             .await?;
 
-        println!("here3");
-
         res.json::<Vec<UserProfile>>().await.map_err(|e| {
             ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
         })
+    }
+
+    pub async fn check_if_email_exist<T>(&self, id: T) -> Result<bool, ClientErrorKind>
+    where
+        T: Serialize,
+    {
+        let res = self
+            .client
+            .rpc(
+                UserRpc::CheckIfEmailExist,
+                json!({ "_email": id }).to_string(),
+            )
+            .await?;
+
+        let value = res.json::<bool>().await.map_err(|e| {
+            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })?;
+
+        Ok(value)
     }
 
     fn table(&self) -> Builder {

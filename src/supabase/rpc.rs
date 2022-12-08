@@ -15,8 +15,14 @@ pub enum ServiceRequestRpc {
     ApplyProvider,
     #[strum(serialize = "servicerequests_selectprovider")]
     SelectProvider,
+    #[strum(serialize = "servicerequests_startservice")]
+    StartService,
     #[strum(serialize = "servicerequests_completeservice")]
     CompleteService,
+    #[strum(serialize = "servicerequests_getbyid")]
+    GetById,
+    #[strum(serialize = "servicerequests_getsummaryforuser")]
+    GetSummaryForUser,
 }
 
 #[derive(AsRefStr, Debug)]
@@ -25,17 +31,19 @@ pub enum RatingRpc {
     CreateForProvider,
     #[strum(serialize = "ratings_createforrequestor")]
     CreateForRequestor,
+    #[allow(unused)]
     #[strum(serialize = "ratings_delete")]
     Delete,
 }
 
-#[allow(unused)]
 #[derive(AsRefStr, Debug)]
 pub enum UserRpc {
-    #[strum(serialize = "users_getbyid")]
-    GetById,
+    #[strum(serialize = "users_getprofile")]
+    GetProfile,
     #[strum(serialize = "users_createnewprofile")]
     HandleNewUser,
+    #[strum(serialize = "users_checkifemailexist")]
+    CheckIfEmailExist,
 }
 
 macro_rules! rpc_method {

@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod graphql;
 pub mod rating;
 pub(self) mod rpc;
 pub mod service_request;
@@ -20,8 +21,8 @@ impl std::error::Error for InternalErrorKind {}
 impl fmt::Display for InternalErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InternalErrorKind::ParsingError(s) => write!(f, "parsing error : {}", s),
-            InternalErrorKind::RequestError(s) => write!(f, "request error : {}", s),
+            InternalErrorKind::ParsingError(s) => write!(f, "parsing error : {s}"),
+            InternalErrorKind::RequestError(s) => write!(f, "request error : {s}"),
         }
     }
 }
@@ -72,14 +73,13 @@ pub(self) struct SupabaseClient {
 
 impl SupabaseClient {
     fn new() -> Self {
+        let uri = dotenv::var("SUPABASE_ENDPOINT").expect("MISSING SUPABASE POSTGREST ENDPOINT!");
+        let apikey = dotenv::var("SUPABASE_API_KEY").expect("MISSING SUPABASE API KEY!");
+
         Self {
-            postgrest_client: Postgrest::new(
-                dotenv::var("SUPABASE_ENDPOINT").expect("MISSING SUPABASE POSTGREST ENDPOINT!"),
-            )
-            .insert_header(
-                "apikey",
-                dotenv::var("SUPABASE_API_KEY").expect("MISSING SUPABASE API KEY!"),
-            ),
+            postgrest_client: Postgrest::new(uri)
+                .insert_header("apikey", &apikey)
+                .insert_header("Authorization", format!("Bearer {apikey}")),
         }
     }
 

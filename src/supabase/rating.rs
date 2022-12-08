@@ -1,5 +1,5 @@
 use super::{rpc::RatingRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError};
-use crate::proto::timebank::rating::{create::NewRatingData, RatingData};
+use crate::proto::rating::{create::NewRatingData, RatingData};
 
 use postgrest::Builder;
 use serde_json::json;
@@ -108,14 +108,83 @@ impl RatingClient {
         }
     }
 
-    pub async fn update<T, U>(&self, id: T, body: U) -> Result<Vec<RatingData>, ClientErrorKind>
+    pub async fn get_for_request<T: AsRef<str>>(
+        &self,
+        request_id: T,
+    ) -> Result<Vec<RatingData>, ClientErrorKind> {
+        let res = self
+            .table()
+            .eq("request_id", request_id)
+            .execute()
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
+
+        if res.status().is_success() {
+            let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Ok(values)
+        } else {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        }
+    }
+
+    pub async fn get_by_id<T, U>(
+        &self,
+        request_id: T,
+        rating_for: U,
+    ) -> Result<Vec<RatingData>, ClientErrorKind>
     where
         T: AsRef<str>,
-        U: Into<String>,
+        U: AsRef<str>,
     {
         let res = self
             .table()
-            .eq("id", id)
+            .eq("request_id", request_id)
+            .eq("rating_for", rating_for)
+            .execute()
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
+
+        if res.status().is_success() {
+            let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Ok(values)
+        } else {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        }
+    }
+
+    pub async fn update<T, U, V>(
+        &self,
+        request_id: T,
+        rating_for: U,
+        body: V,
+    ) -> Result<Vec<RatingData>, ClientErrorKind>
+    where
+        T: AsRef<str>,
+        U: AsRef<str>,
+        V: Into<String>,
+    {
+        let res = self
+            .table()
+            .eq("request_id", request_id)
+            .eq("rating_for", rating_for)
             .update(body)
             .execute()
             .await
@@ -138,13 +207,15 @@ impl RatingClient {
         }
     }
 
-    pub async fn delete<T>(&self, id: T) -> Result<(), ClientErrorKind>
+    pub async fn delete<T, U>(&self, request_id: T, rating_for: U) -> Result<(), ClientErrorKind>
     where
         T: AsRef<str>,
+        U: AsRef<str>,
     {
         let res = self
             .table()
-            .eq("id", id)
+            .eq("request_id", request_id)
+            .eq("rating_for", rating_for)
             .delete()
             .execute()
             .await
@@ -152,14 +223,14 @@ impl RatingClient {
                 ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
             })?;
 
-        if res.status().is_success() {
-            Ok(())
-        } else {
+        if !res.status().is_success() {
             let err = res.json::<SupabaseError>().await.map_err(|e| {
                 ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
             Err(ClientErrorKind::SupabaseError(err))
+        } else {
+            Ok(())
         }
     }
 

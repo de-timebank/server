@@ -4,39 +4,75 @@
 //      and get the user associated with the token. the append the user id
 //      in the request metadata.
 //
-
+mod middleware;
 mod proto;
 mod services;
 mod starknet;
 mod supabase;
 
+use std::{
+    process::exit,
+    sync::{Arc, Mutex},
+};
+
+use color_eyre::Report;
 use dotenv::dotenv;
-use proto::timebank::user::user_server::UserServer;
+use middleware::RequestLoggerLayer;
 use services::{
     auth::{AuthServer, AuthService},
     rating::{RatingServer, RatingService},
     service_request::{ServiceRequestServer, ServiceRequestService},
-    user::UserService,
+    user::{UserServer, UserService},
 };
 use tonic::transport::Server;
+use tracing::info;
+use tracing_subscriber::{fmt::time::LocalTime, EnvFilter};
 
-// async fn interceptor(req: tonic::Request<()>) -> Result<tonic::Request<()>, tonic::Status> {
-//     match req.metadata().get("access_token") {
-//         Some(_) => Ok(req),
-//         None => Err(tonic::Status::unauthenticated("MISSING ACCESS_TOKEN")),
-//     }
-// }
+fn register_shutdown_handler() {
+    let shutdown_flag = Arc::new(Mutex::new(false));
+
+    ctrlc::set_handler(move || {
+        let mut flag = shutdown_flag.lock().unwrap();
+        let flag_value = *flag;
+
+        if !flag_value {
+            *flag = true;
+            info!("press CTRL-C again to exit...");
+        } else {
+            exit(0)
+        }
+    })
+    .expect("could not register shutdown handler");
+}
+
+fn setup() {
+    dotenv().ok();
+
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info")
+    }
+
+    tracing_subscriber::fmt::fmt()
+        .with_timer(LocalTime::rfc_3339())
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+
+    register_shutdown_handler();
+}
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv().ok();
+async fn main() -> Result<(), Report> {
+    setup();
 
     let addr = dotenv::var("SOCKET_ADDRESS")
         .expect("MISSING SOCKET ADDRESS")
         .parse()
         .expect("UNABLE TO PARSE SOKCET ADDRESS STRING");
 
+    info!("Listening on {}", addr);
+
     Server::builder()
+        .layer(RequestLoggerLayer::default())
         .add_service(ServiceRequestServer::new(ServiceRequestService::new()))
         .add_service(RatingServer::new(RatingService::new()))
         .add_service(UserServer::new(UserService::new()))
