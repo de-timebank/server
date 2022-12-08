@@ -1,6 +1,8 @@
 pub use crate::proto::rating::rating_server::RatingServer;
 
-use crate::proto::rating::{create, delete, get, rating_server::Rating, update};
+use crate::proto::rating::{
+    create, delete, get_by_id, get_for_request, rating_server::Rating, update,
+};
 use crate::services::{error_messages, Result};
 use crate::supabase::{rating::RatingClient, ClientErrorKind};
 
@@ -71,15 +73,18 @@ impl Rating for RatingService {
         }
     }
 
-    async fn get(&self, request: Request<get::Request>) -> Result<Response<get::Response>> {
-        let get::Request { key, value } = request.into_inner();
+    async fn get_for_request(
+        &self,
+        request: Request<get_for_request::Request>,
+    ) -> Result<Response<get_for_request::Response>> {
+        let get_for_request::Request { request_id } = request.into_inner();
 
-        let res = self.client.get(key, value).await;
+        let res = self.client.get_for_request(&request_id).await;
 
         match res {
-            Ok(values) => Ok(Response::new(get::Response { ratings: values })),
-
-            Err(e) => Err(Status::unknown(e.to_string())),
+            Ok(values) => Ok(Response::new(get_for_request::Response { ratings: values })),
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -116,6 +121,26 @@ impl Rating for RatingService {
             Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
 
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+        }
+    }
+
+    async fn get_by_id(
+        &self,
+        request: Request<get_by_id::Request>,
+    ) -> Result<Response<get_by_id::Response>> {
+        let get_by_id::Request {
+            request_id,
+            rating_for,
+        } = request.into_inner();
+
+        let res = self.client.get_by_id(&request_id, &rating_for).await;
+
+        match res {
+            Ok(values) => Ok(Response::new(get_by_id::Response {
+                rating: values.into_iter().next(),
+            })),
+            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 }

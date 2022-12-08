@@ -79,14 +79,47 @@ impl RatingClient {
         Ok(values.into_iter().next().unwrap_or_default())
     }
 
-    pub async fn get<T, U>(&self, column: T, filter: U) -> Result<Vec<RatingData>, ClientErrorKind>
+    pub async fn get_for_request<T: AsRef<str>>(
+        &self,
+        request_id: T,
+    ) -> Result<Vec<RatingData>, ClientErrorKind> {
+        let res = self
+            .table()
+            .eq("request_id", request_id)
+            .execute()
+            .await
+            .map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+            })?;
+
+        if res.status().is_success() {
+            let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Ok(values)
+        } else {
+            let err = res.json::<SupabaseError>().await.map_err(|e| {
+                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            })?;
+
+            Err(ClientErrorKind::SupabaseError(err))
+        }
+    }
+
+    pub async fn get_by_id<T, U>(
+        &self,
+        request_id: T,
+        rating_for: U,
+    ) -> Result<Vec<RatingData>, ClientErrorKind>
     where
         T: AsRef<str>,
         U: AsRef<str>,
     {
         let res = self
             .table()
-            .eq(column, filter)
+            .eq("request_id", request_id)
+            .eq("rating_for", rating_for)
             .execute()
             .await
             .map_err(|e| {
