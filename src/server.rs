@@ -15,6 +15,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use color_eyre::Report;
 use dotenv::dotenv;
 use middleware::RequestLoggerLayer;
 use services::{
@@ -60,7 +61,7 @@ fn setup() {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Report> {
     setup();
 
     let addr = dotenv::var("SOCKET_ADDRESS")
