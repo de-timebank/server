@@ -21,8 +21,8 @@ impl std::error::Error for InternalErrorKind {}
 impl fmt::Display for InternalErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InternalErrorKind::ParsingError(s) => write!(f, "parsing error : {}", s),
-            InternalErrorKind::RequestError(s) => write!(f, "request error : {}", s),
+            InternalErrorKind::ParsingError(s) => write!(f, "parsing error : {s}"),
+            InternalErrorKind::RequestError(s) => write!(f, "request error : {s}"),
         }
     }
 }
