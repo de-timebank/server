@@ -1,12 +1,30 @@
 use crate::proto::user::{NewUserProfile, ProfileSummary, UserProfile};
-use crate::supabase::{self, rpc::UserRpc, ClientError, InternalErrorKind, PostgrestError};
+use crate::supabase::{self, rpc::UserRpc, ClientError, InternalErrorKind, PostgrestError, Schema};
 
 use postgrest::Builder;
 use serde::Serialize;
 use serde_json::json;
 
+#[derive(Default)]
 pub struct UserClient {
     client: supabase::Client,
+}
+
+#[tonic::async_trait]
+impl Schema for UserClient {
+    type Method = UserRpc;
+
+    fn table(&self) -> Builder {
+        self.client.from("profiles")
+    }
+
+    async fn rpc<T: Into<String> + std::marker::Send>(
+        &self,
+        method: Self::Method,
+        params: T,
+    ) -> Result<reqwest::Response, ClientError> {
+        self.client.rpc(method, params).await
+    }
 }
 
 impl UserClient {
@@ -69,7 +87,6 @@ impl UserClient {
 
     pub async fn get_profile(&self, user_id: &str) -> Result<ProfileSummary, ClientError> {
         let res = self
-            .client
             .rpc(
                 UserRpc::GetProfile,
                 json!({ "_user_id": user_id }).to_string(),
@@ -90,7 +107,6 @@ impl UserClient {
         T: Serialize,
     {
         let res = self
-            .client
             .rpc(
                 UserRpc::HandleNewUser,
                 json!({
@@ -111,7 +127,6 @@ impl UserClient {
         T: Serialize,
     {
         let res = self
-            .client
             .rpc(
                 UserRpc::CheckIfEmailExist,
                 json!({ "_email": id }).to_string(),
@@ -123,9 +138,5 @@ impl UserClient {
         })?;
 
         Ok(value)
-    }
-
-    fn table(&self) -> Builder {
-        self.client.from("profiles")
     }
 }

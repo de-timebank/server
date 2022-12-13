@@ -10,6 +10,8 @@ use postgrest::{Builder, Postgrest};
 use reqwest::Response;
 use serde::{Deserialize, Serialize};
 
+use self::rpc::RpcMethod;
+
 #[derive(Debug)]
 pub enum InternalErrorKind {
     ParsingError(String),
@@ -71,6 +73,12 @@ pub(self) struct Client {
     postgrest: Postgrest,
 }
 
+impl Default for Client {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Client {
     fn new() -> Self {
         let uri = dotenv::var("SUPABASE_ENDPOINT").expect("MISSING SUPABASE POSTGREST ENDPOINT!");
@@ -114,4 +122,21 @@ impl Client {
     {
         self.postgrest.from(table)
     }
+}
+
+// what to have in the `schema` trait
+// - table() - to access the schema postgres table
+// - rpc() - to access rpc methods related to that schema (based on the naming of the rpc methods)
+
+#[tonic::async_trait]
+trait Schema {
+    type Method: RpcMethod;
+
+    fn table(&self) -> Builder;
+
+    async fn rpc<T: Into<String> + std::marker::Send>(
+        &self,
+        method: Self::Method,
+        params: T,
+    ) -> Result<Response, ClientError>;
 }

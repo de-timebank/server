@@ -1,11 +1,31 @@
 use crate::proto::rating::{create::NewRatingData, RatingData};
-use crate::supabase::{self, rpc::RatingRpc, ClientError, InternalErrorKind, PostgrestError};
+use crate::supabase::{
+    self, rpc::RatingRpc, ClientError, InternalErrorKind, PostgrestError, Schema,
+};
 
 use postgrest::Builder;
 use serde_json::json;
 
+#[derive(Default)]
 pub struct RatingClient {
     client: supabase::Client,
+}
+
+#[tonic::async_trait]
+impl Schema for RatingClient {
+    type Method = RatingRpc;
+
+    fn table(&self) -> Builder {
+        self.client.from("ratings")
+    }
+
+    async fn rpc<T: Into<String> + std::marker::Send>(
+        &self,
+        method: Self::Method,
+        params: T,
+    ) -> Result<reqwest::Response, ClientError> {
+        self.client.rpc(method, params).await
+    }
 }
 
 impl RatingClient {
@@ -27,7 +47,6 @@ impl RatingClient {
         } = rating;
 
         let res = self
-            .client
             .rpc(
                 RatingRpc::CreateForRequestor,
                 json!({
@@ -59,7 +78,6 @@ impl RatingClient {
         } = rating;
 
         let res = self
-            .client
             .rpc(
                 RatingRpc::CreateForProvider,
                 json!({
@@ -232,9 +250,5 @@ impl RatingClient {
         } else {
             Ok(())
         }
-    }
-
-    fn table(&self) -> Builder {
-        self.client.postgrest.from("ratings")
     }
 }

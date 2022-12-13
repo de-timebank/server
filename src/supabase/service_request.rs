@@ -1,14 +1,32 @@
 use crate::proto::servicerequest::{create, get_by_id, get_summary_for_user, ServiceRequestData};
 use crate::supabase::{
-    self, rpc::ServiceRequestRpc, ClientError, InternalErrorKind, PostgrestError,
+    self, rpc::ServiceRequestRpc, ClientError, InternalErrorKind, PostgrestError, Schema,
 };
 
 use postgrest::Builder;
 use serde::Serialize;
 use serde_json::json;
 
+#[derive(Default)]
 pub struct ServiceRequestClient {
     client: supabase::Client,
+}
+
+#[tonic::async_trait]
+impl Schema for ServiceRequestClient {
+    type Method = ServiceRequestRpc;
+
+    fn table(&self) -> Builder {
+        self.client.from("service_requests")
+    }
+
+    async fn rpc<T: Into<String> + std::marker::Send>(
+        &self,
+        method: Self::Method,
+        params: T,
+    ) -> Result<reqwest::Response, ClientError> {
+        self.client.rpc(method, params).await
+    }
 }
 
 impl ServiceRequestClient {
@@ -27,7 +45,6 @@ impl ServiceRequestClient {
         T: Serialize,
     {
         let res = self
-            .client
             .rpc(
                 ServiceRequestRpc::Create,
                 json!({
@@ -83,7 +100,6 @@ impl ServiceRequestClient {
         T: Serialize,
     {
         let res = self
-            .client
             .rpc(
                 ServiceRequestRpc::GetById,
                 json!({
@@ -134,12 +150,11 @@ impl ServiceRequestClient {
     where
         T: Serialize,
     {
-        self.client
-            .rpc(
-                ServiceRequestRpc::Delete,
-                json!({ "_request_id": id }).to_string(),
-            )
-            .await?;
+        self.rpc(
+            ServiceRequestRpc::Delete,
+            json!({ "_request_id": id }).to_string(),
+        )
+        .await?;
         Ok(())
     }
 
@@ -148,16 +163,15 @@ impl ServiceRequestClient {
         T: Serialize,
         U: Serialize,
     {
-        self.client
-            .rpc(
-                ServiceRequestRpc::ApplyProvider,
-                json!({
-                    "_request_id": id,
-                    "_provider": provider
-                })
-                .to_string(),
-            )
-            .await?;
+        self.rpc(
+            ServiceRequestRpc::ApplyProvider,
+            json!({
+                "_request_id": id,
+                "_provider": provider
+            })
+            .to_string(),
+        )
+        .await?;
         Ok(())
     }
 
@@ -172,17 +186,16 @@ impl ServiceRequestClient {
         U: Serialize,
         V: Serialize,
     {
-        self.client
-            .rpc(
-                ServiceRequestRpc::SelectProvider,
-                json!({
-                    "_caller": user,
-                    "_request_id": id,
-                    "_provider": provider,
-                })
-                .to_string(),
-            )
-            .await?;
+        self.rpc(
+            ServiceRequestRpc::SelectProvider,
+            json!({
+                "_caller": user,
+                "_request_id": id,
+                "_provider": provider,
+            })
+            .to_string(),
+        )
+        .await?;
         Ok(())
     }
 
@@ -191,16 +204,15 @@ impl ServiceRequestClient {
         T: Serialize,
         U: Serialize,
     {
-        self.client
-            .rpc(
-                ServiceRequestRpc::StartService,
-                json!({
-                    "_request_id": request_id,
-                    "_user_id": user_id
-                })
-                .to_string(),
-            )
-            .await?;
+        self.rpc(
+            ServiceRequestRpc::StartService,
+            json!({
+                "_request_id": request_id,
+                "_user_id": user_id
+            })
+            .to_string(),
+        )
+        .await?;
         Ok(())
     }
 
@@ -209,16 +221,15 @@ impl ServiceRequestClient {
         T: Serialize,
         U: Serialize,
     {
-        self.client
-            .rpc(
-                ServiceRequestRpc::CompleteService,
-                json!({
-                    "_request_id": id,
-                    "_user_id": requestor,
-                })
-                .to_string(),
-            )
-            .await?;
+        self.rpc(
+            ServiceRequestRpc::CompleteService,
+            json!({
+                "_request_id": id,
+                "_user_id": requestor,
+            })
+            .to_string(),
+        )
+        .await?;
         Ok(())
     }
 
@@ -253,16 +264,11 @@ impl ServiceRequestClient {
         Ok(values)
     }
 
-    fn table(&self) -> Builder {
-        self.client.from("service_requests")
-    }
-
     pub async fn get_summary_for_user<T: Serialize>(
         &self,
         user_id: T,
     ) -> Result<get_summary_for_user::Response, ClientError> {
         let res = self
-            .client
             .rpc(
                 ServiceRequestRpc::GetSummaryForUser,
                 json!({ "_user_id": user_id }).to_string(),
