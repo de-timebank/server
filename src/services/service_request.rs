@@ -199,13 +199,13 @@ impl ServiceRequest for ServiceRequestService {
         &self,
         request: Request<get_available::Request>,
     ) -> Result<Response<get_available::Response>> {
-        let get_available::Request { filter, page } = request.into_inner();
+        let get_available::Request { filter, range } = request.into_inner();
 
         let Some(filter) = filter else {
             return Err(Status::invalid_argument("missing filter data"))
         };
 
-        let Some(page) = page else {
+        let Some(range) = range else {
             return Err(Status::invalid_argument("missing page data"))
         };
 
@@ -214,8 +214,8 @@ impl ServiceRequest for ServiceRequestService {
             .get_available(
                 &filter.by,
                 &filter.value,
-                page.offset as usize,
-                page.limit as usize,
+                range.from as usize,
+                range.to as usize,
             )
             .await;
 

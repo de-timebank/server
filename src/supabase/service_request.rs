@@ -238,8 +238,8 @@ impl ServiceRequestClient {
         &self,
         filter_by: T,
         filter_value: U,
-        offset: usize,
-        limit: usize,
+        from: usize,
+        to: usize,
     ) -> Result<Vec<ServiceRequestData>, ClientError>
     where
         T: AsRef<str>,
@@ -250,7 +250,7 @@ impl ServiceRequestClient {
             .select("*")
             .eq("state", "0")
             .eq(filter_by, filter_value)
-            .range(offset, offset + limit)
+            .range(from, to)
             .execute()
             .await
             .map_err(|e| {
