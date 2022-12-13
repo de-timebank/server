@@ -29,10 +29,8 @@ impl User for UserService {
 
         match res {
             Ok(values) => Ok(Response::new(get::Response { users: values })),
-
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
-
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -48,10 +46,8 @@ impl User for UserService {
             Ok(values) => Ok(Response::new(get_by_id::Response {
                 user: values.into_iter().next(),
             })),
-
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
-
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -65,10 +61,8 @@ impl User for UserService {
 
         match res {
             Ok(value) => Ok(Response::new(update::Response { user: Some(value) })),
-
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
-
             Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 

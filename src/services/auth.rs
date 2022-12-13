@@ -62,10 +62,8 @@ impl Auth for AuthService {
 
                 match res {
                     Ok(_) => Ok(Response::new(sign_up::Response { user_id: user.id })),
-
-                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
-
                     Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
                 }
             }
 

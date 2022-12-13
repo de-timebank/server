@@ -37,10 +37,8 @@ impl Rating for RatingService {
                     Ok(value) => Ok(Response::new(create::Response {
                         rating: Some(value),
                     })),
-
-                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
-
                     Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
                 }
             }
 
@@ -62,10 +60,8 @@ impl Rating for RatingService {
                     Ok(value) => Ok(Response::new(create::Response {
                         rating: Some(value),
                     })),
-
-                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
-
                     Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
                 }
             }
 
