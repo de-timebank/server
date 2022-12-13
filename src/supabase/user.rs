@@ -1,4 +1,4 @@
-use crate::proto::user::{NewUserProfile, ProfileSummary, UserProfile};
+use crate::proto::user::{get_credit_balance, NewUserProfile, ProfileSummary, UserProfile};
 use crate::supabase::{self, rpc::UserRpc, ClientError, InternalErrorKind, PostgrestError, Schema};
 
 use postgrest::Builder;
@@ -138,5 +138,19 @@ impl UserClient {
         })?;
 
         Ok(value)
+    }
+
+    pub async fn get_credit_balance<T: Serialize>(
+        &self,
+        user_id: T,
+    ) -> Result<get_credit_balance::Response, ClientError> {
+        self.rpc(
+            UserRpc::GetCreditBalance,
+            json!({ "_user_id": user_id }).to_string(),
+        )
+        .await?
+        .json::<get_credit_balance::Response>()
+        .await
+        .map_err(|e| ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string())))
     }
 }

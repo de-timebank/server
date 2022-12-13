@@ -93,11 +93,18 @@ impl User for UserService {
         todo!()
     }
 
-    #[allow(unused)]
     async fn get_credit_balance(
         &self,
         request: Request<get_credit_balance::Request>,
     ) -> Result<Response<get_credit_balance::Response>> {
-        todo!()
+        let get_credit_balance::Request { user_id } = request.into_inner();
+
+        let res = self.client.get_credit_balance(&user_id).await;
+
+        match res {
+            Ok(value) => Ok(Response::new(value)),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
+        }
     }
 }
