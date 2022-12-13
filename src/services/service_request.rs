@@ -7,7 +7,7 @@ use crate::{
         start_service, update,
     },
     services::{error_messages, Result},
-    supabase::{service_request::ServiceRequestClient, ClientErrorKind},
+    supabase::{service_request::ServiceRequestClient, ClientError},
 };
 
 pub use crate::proto::servicerequest::service_request_server::ServiceRequestServer;
@@ -43,8 +43,8 @@ impl ServiceRequest for ServiceRequestService {
                     Ok(value) => Ok(Response::new(create::Response {
                         request: Some(value),
                     })),
-                    Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+                    Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+                    Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
                 }
             }
 
@@ -66,8 +66,8 @@ impl ServiceRequest for ServiceRequestService {
             Ok(values) => Ok(Response::new(update::Response {
                 request: values.into_iter().next(),
             })),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -84,8 +84,8 @@ impl ServiceRequest for ServiceRequestService {
 
             match res {
                 Ok(()) => Ok(Response::new(delete::Response {})),
-                Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-                Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+                Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+                Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
             }
         }
     }
@@ -97,8 +97,8 @@ impl ServiceRequest for ServiceRequestService {
 
         match res {
             Ok(values) => Ok(Response::new(get::Response { requests: values })),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -112,8 +112,8 @@ impl ServiceRequest for ServiceRequestService {
 
         match res {
             Ok(value) => Ok(Response::new(value)),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -130,8 +130,8 @@ impl ServiceRequest for ServiceRequestService {
 
         match res {
             Ok(()) => Ok(Response::new(complete_service::Response {})),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -148,8 +148,8 @@ impl ServiceRequest for ServiceRequestService {
 
         match res {
             Ok(()) => Ok(Response::new(apply_provider::Response {})),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -172,8 +172,8 @@ impl ServiceRequest for ServiceRequestService {
 
         match res {
             Ok(()) => Ok(Response::new(select_provider::Response {})),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -190,8 +190,8 @@ impl ServiceRequest for ServiceRequestService {
 
         match res {
             Ok(()) => Ok(Response::new(start_service::Response {})),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -221,8 +221,8 @@ impl ServiceRequest for ServiceRequestService {
 
         match res {
             Ok(requests) => Ok(Response::new(get_available::Response { requests })),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -236,8 +236,8 @@ impl ServiceRequest for ServiceRequestService {
 
         match res {
             Ok(value) => Ok(Response::new(value)),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 }

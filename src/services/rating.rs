@@ -4,7 +4,7 @@ use crate::proto::rating::{
     create, delete, get, get_by_id, get_for_request, rating_server::Rating, update,
 };
 use crate::services::{error_messages, Result};
-use crate::supabase::{rating::RatingClient, ClientErrorKind};
+use crate::supabase::{rating::RatingClient, ClientError};
 
 use tonic::{Request, Response, Status};
 
@@ -37,8 +37,8 @@ impl Rating for RatingService {
                     Ok(value) => Ok(Response::new(create::Response {
                         rating: Some(value),
                     })),
-                    Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+                    Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+                    Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
                 }
             }
 
@@ -60,8 +60,8 @@ impl Rating for RatingService {
                     Ok(value) => Ok(Response::new(create::Response {
                         rating: Some(value),
                     })),
-                    Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+                    Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+                    Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
                 }
             }
 
@@ -79,8 +79,8 @@ impl Rating for RatingService {
 
         match res {
             Ok(values) => Ok(Response::new(get_for_request::Response { ratings: values })),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -97,8 +97,8 @@ impl Rating for RatingService {
 
         match res {
             Ok(_) => Ok(Response::new(delete::Response {})),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -118,8 +118,8 @@ impl Rating for RatingService {
             Ok(values) => Ok(Response::new(update::Response {
                 rating: values.into_iter().next(),
             })),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -138,8 +138,8 @@ impl Rating for RatingService {
             Ok(values) => Ok(Response::new(get_by_id::Response {
                 rating: values.into_iter().next(),
             })),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 
@@ -150,8 +150,8 @@ impl Rating for RatingService {
 
         match res {
             Ok(ratings) => Ok(Response::new(get::Response { ratings })),
-            Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
-            Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
     }
 }
