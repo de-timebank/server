@@ -27,7 +27,6 @@ tokio = { version = "1.20.0", features = ["full"] }
 reqwest = { version = "0.11.11", features = ["json"] }
 tower = "0.4.13"
 starknet = { git = "https://github.com/xJonathanLEI/starknet-rs" }
-eyre = "0.6.8"
 strum = { version = "0.24", features = ["derive"] }
 strum_macros = "0.24"
 graphql_client = "0.11.0"
