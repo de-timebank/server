@@ -4,7 +4,7 @@
 //      and get the user associated with the token. the append the user id
 //      in the request metadata.
 //
-mod middleware;
+mod layers;
 mod proto;
 mod services;
 mod starknet;
@@ -17,7 +17,7 @@ use std::{
 
 use color_eyre::Report;
 use dotenv::dotenv;
-use middleware::RequestLoggerLayer;
+use layers::logger::RequestLoggerLayer;
 use services::{
     auth::{AuthServer, AuthService},
     rating::{RatingServer, RatingService},

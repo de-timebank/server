@@ -46,10 +46,8 @@ where
             let uri = req.uri().path();
             let method = req.method();
 
-            info!("{}", format!("{method} {uri}"));
-
-            let response = inner.call(req).await?;
-            Ok(response)
+            info!(?method, ?uri);
+            inner.call(req).await
         })
     }
 }
