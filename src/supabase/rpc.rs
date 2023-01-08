@@ -46,6 +46,8 @@ pub enum UserRpc {
     CheckIfEmailExist,
     #[strum(serialize = "users_getcreditbalance")]
     GetCreditBalance,
+    #[strum(serialize = "users_gettransactionhistory")]
+    GetTransactionHistory,
 }
 
 macro_rules! rpc_method {

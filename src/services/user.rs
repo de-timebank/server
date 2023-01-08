@@ -2,7 +2,8 @@ use tonic::{Request, Response, Status};
 
 pub use crate::proto::user::user_server::UserServer;
 use crate::proto::user::{
-    get, get_by_id, get_credit_balance, get_profile, get_rating, update, user_server::User,
+    get, get_by_id, get_credit_balance, get_profile, get_rating, get_transaction_history, update,
+    user_server::User,
 };
 use crate::services::Result;
 use crate::supabase::user::UserClient;
@@ -103,6 +104,21 @@ impl User for UserService {
 
         match res {
             Ok(value) => Ok(Response::new(value)),
+            Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+            Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
+        }
+    }
+
+    async fn get_transaction_history(
+        &self,
+        request: Request<get_transaction_history::Request>,
+    ) -> Result<Response<get_transaction_history::Response>> {
+        let get_transaction_history::Request { user_id } = request.into_inner();
+
+        let res = self.client.get_transaction_history(&user_id).await;
+
+        match res {
+            Ok(data) => Ok(Response::new(get_transaction_history::Response { data })),
             Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
             Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }
