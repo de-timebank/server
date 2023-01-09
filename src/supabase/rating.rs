@@ -1,24 +1,44 @@
-use super::{rpc::RatingRpc, ClientErrorKind, InternalErrorKind, SupabaseClient, SupabaseError};
 use crate::proto::rating::{create::NewRatingData, RatingData};
+use crate::supabase::{
+    self, rpc::RatingRpc, ClientError, InternalErrorKind, PostgrestError, Schema,
+};
 
 use postgrest::Builder;
 use serde_json::json;
 
+#[derive(Default)]
 pub struct RatingClient {
-    client: SupabaseClient,
+    client: supabase::Client,
+}
+
+#[tonic::async_trait]
+impl Schema for RatingClient {
+    type Method = RatingRpc;
+
+    fn table(&self) -> Builder {
+        self.client.from("ratings")
+    }
+
+    async fn rpc<T: Into<String> + std::marker::Send>(
+        &self,
+        method: Self::Method,
+        params: T,
+    ) -> Result<reqwest::Response, ClientError> {
+        self.client.rpc(method, params).await
+    }
 }
 
 impl RatingClient {
     pub fn new() -> Self {
         Self {
-            client: SupabaseClient::new(),
+            client: supabase::Client::new(),
         }
     }
 
     pub async fn create_for_requestor(
         &self,
         rating: NewRatingData,
-    ) -> Result<RatingData, ClientErrorKind> {
+    ) -> Result<RatingData, ClientError> {
         let NewRatingData {
             request_id,
             author,
@@ -27,7 +47,6 @@ impl RatingClient {
         } = rating;
 
         let res = self
-            .client
             .rpc(
                 RatingRpc::CreateForRequestor,
                 json!({
@@ -41,7 +60,7 @@ impl RatingClient {
             .await?;
 
         let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
-            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
         })?;
 
         Ok(values.into_iter().next().unwrap_or_default())
@@ -50,7 +69,7 @@ impl RatingClient {
     pub async fn create_for_provider(
         &self,
         rating: NewRatingData,
-    ) -> Result<RatingData, ClientErrorKind> {
+    ) -> Result<RatingData, ClientError> {
         let NewRatingData {
             request_id,
             author,
@@ -59,7 +78,6 @@ impl RatingClient {
         } = rating;
 
         let res = self
-            .client
             .rpc(
                 RatingRpc::CreateForProvider,
                 json!({
@@ -73,13 +91,13 @@ impl RatingClient {
             .await?;
 
         let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
-            ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
         })?;
 
         Ok(values.into_iter().next().unwrap_or_default())
     }
 
-    pub async fn get<T, U>(&self, column: T, filter: U) -> Result<Vec<RatingData>, ClientErrorKind>
+    pub async fn get<T, U>(&self, column: T, filter: U) -> Result<Vec<RatingData>, ClientError>
     where
         T: AsRef<str>,
         U: AsRef<str>,
@@ -90,49 +108,49 @@ impl RatingClient {
             .execute()
             .await
             .map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::RequestError(e.to_string()))
             })?;
 
         if res.status().is_success() {
             let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
             Ok(values)
         } else {
-            let err = res.json::<SupabaseError>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            let err = res.json::<PostgrestError>().await.map_err(|e| {
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
-            Err(ClientErrorKind::SupabaseError(err))
+            Err(ClientError::SupabaseError(err))
         }
     }
 
     pub async fn get_for_request<T: AsRef<str>>(
         &self,
         request_id: T,
-    ) -> Result<Vec<RatingData>, ClientErrorKind> {
+    ) -> Result<Vec<RatingData>, ClientError> {
         let res = self
             .table()
             .eq("request_id", request_id)
             .execute()
             .await
             .map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::RequestError(e.to_string()))
             })?;
 
         if res.status().is_success() {
             let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
             Ok(values)
         } else {
-            let err = res.json::<SupabaseError>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            let err = res.json::<PostgrestError>().await.map_err(|e| {
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
-            Err(ClientErrorKind::SupabaseError(err))
+            Err(ClientError::SupabaseError(err))
         }
     }
 
@@ -140,7 +158,7 @@ impl RatingClient {
         &self,
         request_id: T,
         rating_for: U,
-    ) -> Result<Vec<RatingData>, ClientErrorKind>
+    ) -> Result<Vec<RatingData>, ClientError>
     where
         T: AsRef<str>,
         U: AsRef<str>,
@@ -152,21 +170,21 @@ impl RatingClient {
             .execute()
             .await
             .map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::RequestError(e.to_string()))
             })?;
 
         if res.status().is_success() {
             let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
             Ok(values)
         } else {
-            let err = res.json::<SupabaseError>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            let err = res.json::<PostgrestError>().await.map_err(|e| {
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
-            Err(ClientErrorKind::SupabaseError(err))
+            Err(ClientError::SupabaseError(err))
         }
     }
 
@@ -175,7 +193,7 @@ impl RatingClient {
         request_id: T,
         rating_for: U,
         body: V,
-    ) -> Result<Vec<RatingData>, ClientErrorKind>
+    ) -> Result<Vec<RatingData>, ClientError>
     where
         T: AsRef<str>,
         U: AsRef<str>,
@@ -189,25 +207,25 @@ impl RatingClient {
             .execute()
             .await
             .map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::RequestError(e.to_string()))
             })?;
 
         if res.status().is_success() {
             let values = res.json::<Vec<RatingData>>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
             Ok(values)
         } else {
-            let err = res.json::<SupabaseError>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            let err = res.json::<PostgrestError>().await.map_err(|e| {
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
-            Err(ClientErrorKind::SupabaseError(err))
+            Err(ClientError::SupabaseError(err))
         }
     }
 
-    pub async fn delete<T, U>(&self, request_id: T, rating_for: U) -> Result<(), ClientErrorKind>
+    pub async fn delete<T, U>(&self, request_id: T, rating_for: U) -> Result<(), ClientError>
     where
         T: AsRef<str>,
         U: AsRef<str>,
@@ -220,21 +238,17 @@ impl RatingClient {
             .execute()
             .await
             .map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::RequestError(e.to_string()))
             })?;
 
         if !res.status().is_success() {
-            let err = res.json::<SupabaseError>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            let err = res.json::<PostgrestError>().await.map_err(|e| {
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
-            Err(ClientErrorKind::SupabaseError(err))
+            Err(ClientError::SupabaseError(err))
         } else {
             Ok(())
         }
-    }
-
-    fn table(&self) -> Builder {
-        self.client.postgrest_client.from("ratings")
     }
 }

@@ -4,7 +4,7 @@ use crate::proto::auth::auth_server::Auth;
 pub use crate::proto::auth::auth_server::AuthServer;
 use crate::proto::auth::sign_up;
 use crate::services::Result;
-use crate::supabase::ClientErrorKind;
+use crate::supabase::ClientError;
 use crate::supabase::{auth::AuthClient, user::UserClient};
 
 pub struct AuthService {
@@ -62,10 +62,8 @@ impl Auth for AuthService {
 
                 match res {
                     Ok(_) => Ok(Response::new(sign_up::Response { user_id: user.id })),
-
-                    Err(ClientErrorKind::InternalError(e)) => Err(Status::internal(e.to_string())),
-
-                    Err(ClientErrorKind::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+                    Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
+                    Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
                 }
             }
 

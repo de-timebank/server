@@ -2,7 +2,7 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use super::{ClientErrorKind, InternalErrorKind, SupabaseError};
+use super::{ClientError, InternalErrorKind, PostgrestError};
 
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct SignUpResponse {
@@ -50,11 +50,7 @@ impl AuthClient {
         }
     }
 
-    pub async fn sign_up<T, U>(
-        &self,
-        email: T,
-        password: U,
-    ) -> Result<SignUpResponse, ClientErrorKind>
+    pub async fn sign_up<T, U>(&self, email: T, password: U) -> Result<SignUpResponse, ClientError>
     where
         T: Serialize,
         U: Serialize,
@@ -74,29 +70,29 @@ impl AuthClient {
             .send()
             .await
             .map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::RequestError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::RequestError(e.to_string()))
             })?;
 
         if res.status().is_success() {
             let values = res.json::<SignUpResponse>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
             Ok(values)
         } else if res.status() == StatusCode::TOO_MANY_REQUESTS {
             let err = res.text().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
-            Err(ClientErrorKind::InternalError(
-                InternalErrorKind::RequestError(err),
-            ))
+            Err(ClientError::InternalError(InternalErrorKind::RequestError(
+                err,
+            )))
         } else {
-            let err = res.json::<SupabaseError>().await.map_err(|e| {
-                ClientErrorKind::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+            let err = res.json::<PostgrestError>().await.map_err(|e| {
+                ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
             })?;
 
-            Err(ClientErrorKind::SupabaseError(err))
+            Err(ClientError::SupabaseError(err))
         }
     }
 }
