@@ -216,21 +216,31 @@ impl ServiceRequestClient {
         Ok(())
     }
 
-    pub async fn complete_service<T, U>(&self, id: T, requestor: U) -> Result<(), ClientError>
+    pub async fn complete_service<T, U>(
+        &self,
+        id: T,
+        requestor: U,
+    ) -> Result<ServiceRequestData, ClientError>
     where
         T: Serialize,
         U: Serialize,
     {
-        self.rpc(
-            ServiceRequestRpc::CompleteService,
-            json!({
-                "_request_id": id,
-                "_user_id": requestor,
-            })
-            .to_string(),
-        )
-        .await?;
-        Ok(())
+        let res = self
+            .rpc(
+                ServiceRequestRpc::CompleteService,
+                json!({
+                    "_request_id": id,
+                    "_user_id": requestor,
+                })
+                .to_string(),
+            )
+            .await?;
+
+        let values = res.json::<Vec<ServiceRequestData>>().await.map_err(|e| {
+            ClientError::InternalError(InternalErrorKind::ParsingError(e.to_string()))
+        })?;
+
+        Ok(values.into_iter().next().unwrap_or_default())
     }
 
     /// Fetch all service requests that is in the pending state.

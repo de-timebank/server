@@ -40,10 +40,12 @@ impl AdminAccount {
         self.account.execute(calls)
     }
 
+    #[allow(unused)]
     pub fn provider(&self) -> &SequencerGatewayProvider {
         self.account.provider()
     }
 
+    #[allow(unused)]
     pub fn into_inner(self) -> SingleOwnerAccount<SequencerGatewayProvider, LocalWallet> {
         self.account
     }

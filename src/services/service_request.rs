@@ -1,4 +1,5 @@
 use tonic::{Request, Response, Status};
+use tracing::{info, warn};
 
 use crate::{
     proto::servicerequest::{
@@ -7,6 +8,7 @@ use crate::{
         start_service, update,
     },
     services::{error_messages, Result},
+    starknet::{admin_account::AdminAccount, budi_core_contract::BudiCore},
     supabase::{service_request::ServiceRequestClient, ClientError},
 };
 
@@ -129,7 +131,32 @@ impl ServiceRequest for ServiceRequestService {
         let res = self.client.complete_service(request_id, user_id).await;
 
         match res {
-            Ok(()) => Ok(Response::new(complete_service::Response {})),
+            Ok(request) => {
+                // // commit to blockchain here
+                let admin = AdminAccount::new();
+                let res = BudiCore::new(admin)
+                    .commit_service_request(
+                        request.id.as_str(),
+                        request.requestor.as_str(),
+                        request.provider(),
+                        request.actual_payment,
+                        request.completed_at(),
+                    )
+                    .await;
+
+                match res {
+                    Ok(tx) => info!(
+                        "commitment submitted for request_id={} tx_hash={:#x}",
+                        request.id, tx.transaction_hash
+                    ),
+                    Err(e) => warn!(
+                        "error when submitting commitment for request_id={} error={e}",
+                        request.id
+                    ),
+                }
+
+                Ok(Response::new(complete_service::Response {}))
+            }
             Err(ClientError::SupabaseError(e)) => Err(Status::unknown(e.to_string())),
             Err(ClientError::InternalError(e)) => Err(Status::internal(e.to_string())),
         }

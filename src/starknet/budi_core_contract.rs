@@ -1,33 +1,35 @@
-#![allow(dead_code)]
 use super::admin_account::AdminAccount;
+
 use starknet::{
-    accounts::{single_owner::TransactionError, Call},
+    accounts::Call,
     core::{
-        types::{AddTransactionResult, BlockId, FieldElement, InvokeFunctionTransactionRequest},
-        utils::{get_selector_from_name, starknet_keccak},
+        types::{AddTransactionResult, FieldElement},
+        utils::starknet_keccak,
     },
     macros::selector,
-    providers::{Provider, SequencerGatewayProviderError},
-    signers::Signer,
 };
 
+use color_eyre::Result;
+
+#[allow(unused)]
 #[derive(Debug)]
-pub struct CreateCommitmentRequest {
-    pub request_id: String,
+pub struct CompletedServiceRequest {
+    pub request_id: FieldElement,
     pub requestor: FieldElement,
     pub provider: FieldElement,
     pub amount: FieldElement,
+    pub timestamp: FieldElement,
 }
 
-pub struct OperatorContract {
+pub struct BudiCore {
     pub contract_address: FieldElement,
     account: AdminAccount,
 }
 
-impl OperatorContract {
+impl BudiCore {
     pub fn new(account: AdminAccount) -> Self {
-        let main_address = dotenv::var("MAIN_CONTRACT_ADDRESS")
-            .expect("environment variable missing : MAIN_CONTRACT_ADDERSS");
+        let main_address = dotenv::var("BUDI_CORE_CONTRACT_ADDRESS")
+            .expect("environment variable missing : BUDI_CORE_CONTRACT_ADDRESS");
 
         Self {
             contract_address: FieldElement::from_hex_be(&main_address).unwrap(),
@@ -35,38 +37,29 @@ impl OperatorContract {
         }
     }
 
-    pub async fn mint_for_new_user(
+    pub async fn commit_service_request(
         &self,
-        recipient_address: &str,
-    ) -> Result<AddTransactionResult, SequencerGatewayProviderError> {
-        let res = self
-            .account
-            .execute(&[Call {
-                to: self.contract_address,
-                selector: selector!("mint_for_new_user"),
-                calldata: vec![FieldElement::from_hex_be(recipient_address).unwrap()],
-            }])
-            .send()
-            .await
-            .unwrap();
-        Ok(res)
-    }
+        request_id: impl AsRef<str>,
+        requestor: impl AsRef<str>,
+        provider: impl AsRef<str>,
+        amount: f32,
+        timestamp: impl AsRef<str>,
+    ) -> Result<AddTransactionResult> {
+        let amount = (amount * 1000000000000000000f32) as u128;
+        let amount = FieldElement::from_dec_str(&amount.to_string())?;
 
-    pub async fn create_commitment(
-        &self,
-        new_commitment: &CreateCommitmentRequest,
-    ) -> Result<AddTransactionResult, SequencerGatewayProviderError> {
         let res = self
             .account
             .execute(&[Call {
                 to: self.contract_address,
-                selector: selector!("create_commitment"),
+                selector: selector!("commit_service_request"),
                 calldata: vec![
-                    starknet_keccak(new_commitment.request_id.as_bytes()),
-                    new_commitment.requestor,
-                    new_commitment.provider,
-                    new_commitment.amount,
-                    FieldElement::from_dec_str("0").unwrap(),
+                    starknet_keccak(request_id.as_ref().as_bytes()),
+                    starknet_keccak(requestor.as_ref().as_bytes()),
+                    starknet_keccak(provider.as_ref().as_bytes()),
+                    amount,
+                    // should convert into unix timestamp but im too lazy
+                    starknet_keccak(timestamp.as_ref().as_bytes()),
                 ],
             }])
             .send()
@@ -75,16 +68,17 @@ impl OperatorContract {
         Ok(res)
     }
 
-    pub async fn complete_commitment(
+    #[allow(unused)]
+    pub async fn credit_balance_of(
         &self,
-        request_id: &str,
-    ) -> Result<AddTransactionResult, SequencerGatewayProviderError> {
+        user_id: impl AsRef<str>,
+    ) -> Result<AddTransactionResult> {
         let res = self
             .account
             .execute(&[Call {
                 to: self.contract_address,
-                selector: selector!("complete_commitment"),
-                calldata: vec![starknet_keccak(request_id.as_bytes())],
+                selector: selector!("credit_balance_of"),
+                calldata: vec![starknet_keccak(user_id.as_ref().as_bytes())],
             }])
             .send()
             .await
