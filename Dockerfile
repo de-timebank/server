@@ -7,7 +7,7 @@ ENV SUPABASE_AUTH_ENDPOINT="https://quepskrrpovzwydvfezs.supabase.co/auth/v1"
 WORKDIR /budi
 COPY . .
 RUN git submodule init && git submodule update
-RUN apt update && apt-get install -y cmake
+RUN apt update && apt-get install -y cmake protobuf-compiler
 RUN cargo build --release
 CMD ["./target/release/server"]
 EXPOSE 8080
